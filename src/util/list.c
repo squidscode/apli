@@ -38,8 +38,13 @@
         new_node->_val  = val;                              \
         new_node->_next = list->_first;                     \
         new_node->_prev = NULL;                             \
-        list->_first->_prev = new_node;                     \
-        list->_first        = new_node;                     \
+        if(list->_size == 0) { \
+            list->_last = new_node; \
+            list->_first = new_node; \
+        } else { \
+            list->_first->_prev = new_node;                     \
+            list->_first        = new_node;                     \
+        } \
         list->_size += 1;                                   \
     }                                                       \
     void _##TYPE##_list_push_back(TYPE##_list_t *list,      \
@@ -49,21 +54,38 @@
         new_node->_val     = val;                           \
         new_node->_next    = NULL;                          \
         new_node->_prev    = list->_last;                   \
-        list->_last->_next = new_node;                      \
-        list->_last        = new_node;                      \
-        list->_size += 1;                                   \
+        if(list->_size == 0) { \
+            list->_last = new_node; \
+            list->_first = new_node; \
+        } else { \
+            list->_last->_next = new_node;                      \
+            list->_last        = new_node;                      \
+        } \
+        list->_size += 1;\
     }                                                       \
     void _##TYPE##_list_pop_front(TYPE##_list_t *list) {    \
-        list->_first = list->_first->_next;                 \
-        free(list->_first->_next);                          \
-        list->_first->_prev = NULL;                         \
-        list->_size -= 1;                                   \
+        TYPE##_list_node_t *node_after = list->_first->_next; \
+        free(list->_first); \
+        list->_size -= 1; \
+        if(list->_size == 0) { \
+            list->_first = NULL; \
+            list->_last = NULL; \
+        } else { \
+            list->_first = node_after; \
+            node_after->_prev = NULL; \
+        } \
     }                                                       \
     void _##TYPE##_list_pop_back(TYPE##_list_t *list) {     \
-        list->_last = list->_last->_prev;                   \
-        free(list->_last->_next);                           \
-        list->_last->_next = NULL;                          \
+        TYPE##_list_node_t *node_before = list->_last->_prev;                   \
+        free(list->_last);                           \
         list->_size -= 1;                                   \
+        if(list->_size == 0) { \
+            list->_first = NULL; \
+            list->_last = NULL; \
+        } else { \
+            list->_last = node_before; \
+            list->_last->_next = NULL; \
+        } \
     }                                                       \
     void _free_##TYPE##_list(TYPE##_list_t *list) {         \
         while(list->_size > 0) {                            \
@@ -78,7 +100,7 @@
         &_free_##TYPE##_list                                    \
     };                                                          \
     TYPE##_list_t* _new_##TYPE##_list() {                   \
-        TYPE##_list_t *new_list = malloc(sizeof(TYPE##_list_t));  \
+        TYPE##_list_t *new_list = (TYPE##_list_t*) malloc(sizeof(TYPE##_list_t));  \
         new_list->_size = 0;                                \
         new_list->_first = NULL;                            \
         new_list->_last = NULL;                             \
@@ -102,10 +124,3 @@
 #endif
 
 #endif
-
-
-define_list(int);
-int main() {
-    List(int) *l = new_list(int);
-    list_push_back(l, 5);
-}
