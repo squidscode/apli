@@ -18,6 +18,8 @@
         void (*_pop_front)(struct _##TYPE##_list_*); \
         void (*_pop_back)(struct _##TYPE##_list_*);  \
         void (*_free)(struct _##TYPE##_list_*);      \
+        size_t (*_get_size)(struct _##TYPE##_list_*);     \
+        void (*_remove_node)(struct _##TYPE##_list_*, TYPE##_list_node_t*); \
     } TYPE##_list_fns_t;                          \
     typedef struct _##TYPE##_list_ {            \
         size_t _size;                           \
@@ -25,6 +27,17 @@
         TYPE##_list_node_t *_last;              \
         TYPE##_list_fns_t *_fns;                \
     } TYPE##_list_t;                                 \
+    void _##TYPE##_list_node_remove(TYPE##_list_t *list, TYPE##_list_node_t *node) { \
+        if(node == list->_first) { \
+            list->_fns->_pop_front(list); \
+        } else if(node == list->_last) { \
+            list->_fns->_pop_back(list); \
+        } else { \
+            node->_prev->_next = node->_next; \
+            node->_next->_prev = node->_prev; \
+            free(node); \
+        } \
+    } \
     TYPE _##TYPE##_list_get_first(TYPE##_list_t *list) {    \
         return list->_first->_val;                          \
     }                                                       \
@@ -93,11 +106,15 @@
         }                                                   \
         free(list);                                         \
     }                                                       \
+    size_t _##TYPE##_list_get_size(TYPE##_list_t *list) {   \
+        return list->_size; \
+    } \
     TYPE##_list_fns_t TYPE##_list_fns = {                     \
         &_##TYPE##_list_get_first, &_##TYPE##_list_get_last,    \
         &_##TYPE##_list_push_front, &_##TYPE##_list_push_back,  \
         &_##TYPE##_list_pop_front, &_##TYPE##_list_pop_back,    \
-        &_free_##TYPE##_list                                    \
+        &_free_##TYPE##_list, &_##TYPE##_list_get_size,         \
+        &_##TYPE##_list_node_remove                             \
     };                                                          \
     TYPE##_list_t* _new_##TYPE##_list() {                   \
         TYPE##_list_t *new_list = (TYPE##_list_t*) malloc(sizeof(TYPE##_list_t));  \
@@ -112,15 +129,21 @@
 #ifndef UNTYPED_LIST_FN
 #define UNTYPED_LIST_FN
 #define List(TYPE)                  TYPE##_list_t
+#define Iterator(TYPE)              TYPE##_list_node_t
+#define get_iterator(list)          ((list)->_first)
+#define iter_has_next(iter)         ((iter)->_next != NULL)
+#define iter_next(iter)             ((iter)->_next)
+#define iter_val(iter)              ((iter)->_val)
+#define iter_remove(iter, list)     ((list)->_fns->_remove_node((list), (iter)))
 #define new_list(TYPE)              (_new_##TYPE##_list())
-#define list_size(list)             (list->_size)
-#define list_get_first(list)        (list->_fns->_get_first((list)))
-#define list_get_last(list)         (list->_fns->_get_last((list)))
-#define list_push_front(list, val)  (list->_fns->_push_front((list), (val)))
-#define list_push_back(list, val)   (list->_fns->_push_back((list), (val)))
-#define list_pop_front(list)        (list->_fns->_pop_front((list)))
-#define list_pop_back(list)         (list->_fns->_pop_back((list)))
-#define free_list(list)             (list->_fns->_free((list)))
+#define list_size(list)             ((list)->_fns->_get_size(list))
+#define list_get_first(list)        ((list)->_fns->_get_first((list)))
+#define list_get_last(list)         ((list)->_fns->_get_last((list)))
+#define list_push_front(list, val)  ((list)->_fns->_push_front((list), (val)))
+#define list_push_back(list, val)   ((list)->_fns->_push_back((list), (val)))
+#define list_pop_front(list)        ((list)->_fns->_pop_front((list)))
+#define list_pop_back(list)         ((list)->_fns->_pop_back((list)))
+#define free_list(list)             ((list)->_fns->_free((list)))
 #endif
 
 #endif
