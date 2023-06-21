@@ -29,13 +29,13 @@
         return vector->_array_ptr[index];                       \
     }                                                           \
     void _##TYPE##_vector_double_capacity(_##TYPE##_vector_t *vector) { \
-        TYPE *new_ptr = (TYPE*) malloc(sizeof(TYPE) * vector->_capacity * 2); \
+        TYPE *new_ptr = (TYPE*) malloc((sizeof(TYPE) * vector->_capacity) << 1); \
         for(size_t i = 0; i < vector->_size; ++i) { \
             new_ptr[i] = vector->_array_ptr[i]; \
         } \
         free(vector->_array_ptr); \
         vector->_array_ptr = new_ptr; \
-        vector->_capacity *= 2;                                 \
+        vector->_capacity = vector->_capacity << 1;                                 \
     }                                                           \
     void _##TYPE##_vector_set(_##TYPE##_vector_t *vector, size_t index, TYPE value) {   \
         vector->_array_ptr[index] = value;                      \

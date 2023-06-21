@@ -17,5 +17,8 @@
         printf("  - LINE #%d: %s\n", __LINE__, #expr); \
     } \
     test_counter++;
+#define assertFalseQuiet(expr)  assertTrueQuiet(!(expr))
+#define assertFalse(expr)       assertTrue(!(expr))
+
 
 init_test();

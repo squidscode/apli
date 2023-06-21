@@ -1,4 +1,4 @@
-# TODO:
+## Task List
 
 **Define the format for a `.config` file (file suffix name subject to change)**
 1. Define the lexing rules format
