@@ -28,6 +28,26 @@ size_t ch_buf_hash(ch_buf str1) {
     return hash;
 }
 
+typedef const char* str;
+
+define_map(str, str);
+
+size_t str_eq(const char* str1, const char* str2) {
+    return strcmp(str1, str2) == 0;
+}
+
+size_t str_hash(const char* str) {
+    size_t hash = 0;
+    char *ptr = (char*) ((void*) &str);
+    size_t i = 0;
+    size_t mod = sizeof(size_t) / sizeof(char);
+    size_t offset = 0;
+    while(ptr[i] != '\0') {
+        hash ^= ((255UL & ptr[i++]) << (8 * offset++));
+        offset %= mod;
+    }
+    return hash;
+}
 
 
 int main() {
@@ -98,6 +118,7 @@ int main() {
     str_map = new_map(ch_buf, int);
     set_map_hash(str_map, &ch_buf_hash);
     set_map_key_eq(str_map, &ch_buf_eq);
+    strcpy(ch1.buf, "one");
     map_insert(str_map, ch1, 10);
     assertTrue(map_count(str_map, ch1) == 1);
     assertTrue(map_at(str_map, ch1) == 10);
@@ -113,4 +134,27 @@ int main() {
     assertTrue(map_count(str_map, ch1) == 0);
     assertTrue(map_size(str_map) == 0);
     free_map(str_map);
+
+    Map(str, str) *map3 = new_map(str, str);
+    set_map_hash(map3, &str_hash);
+    set_map_key_eq(map3, &str_eq);
+    map_insert(map3, "A", "1");
+    map_insert(map3, "C", "3");
+    map_insert(map3, "D", "4");
+    assertTrue(strcmp(map_at(map3, "A"), "1") == 0);
+    assertTrue(strcmp(map_at(map3, "C"), "3") == 0);
+    assertTrue(strcmp(map_at(map3, "D"), "4") == 0);
+    assertTrue(map_count(map3, "B") == 0);
+    assertTrue(map_size(map3) == 3);
+    map_insert(map3, "B", "three");
+    assertTrue(map_size(map3) == 4);
+    assertTrue(map_count(map3, "B") == 1);
+    assertTrue(strcmp(map_at(map3, "B"), "three") == 0);
+    map_insert(map3, "B", "3");
+    assertTrue(strcmp(map_at(map3, "B"), "3") == 0);
+    map_erase(map3, "B");
+    assertTrue(map_count(map3, "B") == 0);
+    assertTrue(map_size(map3) == 3);
+    free_map(map3);
+
 }
