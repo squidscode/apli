@@ -1,3 +1,3 @@
-typedef struct dfa {
-    
-} dfa_t;
+struct dfa {
+
+};
