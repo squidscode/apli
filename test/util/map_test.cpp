@@ -112,4 +112,5 @@ int main() {
     assertTrue(map_erase(str_map, ch1) == 1);
     assertTrue(map_count(str_map, ch1) == 0);
     assertTrue(map_size(str_map) == 0);
+    free_map(str_map);
 }
