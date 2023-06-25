@@ -51,7 +51,7 @@ size_t str_hash(const char* str) {
 
 
 int main() {
-    Map(int, char) *map = new_map(int, char);
+    Map(int, char) *map = map_new(int, char);
     map_insert(map, 10, 'c');
     assertTrue(map_at(map, 10) == 'c');
     assertTrue(map_count(map, 50) == 0);
@@ -90,9 +90,9 @@ int main() {
     map_insert(map, 2, 'c');
     assertTrue(map_count(map, 2) == 1);
     assertTrue(map_at(map, 2) == 'c');
-    free_map(map);
+    map_free(map);
     
-    Map(ch_buf, int) *str_map = new_map(ch_buf, int);
+    Map(ch_buf, int) *str_map = map_new(ch_buf, int);
     assertTrue(map_size(str_map) == 0);
     ch_buf ch1;
     strcpy(ch1.buf, "one");
@@ -112,10 +112,10 @@ int main() {
     strcpy(ch2.buf, "two");
     assertTrue(ch_buf_eq(ch1, ch2) == 0);
 
-    free_map(str_map);
+    map_free(str_map);
 
     // Define a the str_map with the correct hash and key functions
-    str_map = new_map(ch_buf, int);
+    str_map = map_new(ch_buf, int);
     set_map_hash(str_map, &ch_buf_hash);
     set_map_key_eq(str_map, &ch_buf_eq);
     strcpy(ch1.buf, "one");
@@ -133,9 +133,9 @@ int main() {
     assertTrue(map_erase(str_map, ch1) == 1);
     assertTrue(map_count(str_map, ch1) == 0);
     assertTrue(map_size(str_map) == 0);
-    free_map(str_map);
+    map_free(str_map);
 
-    Map(str, str) *map3 = new_map(str, str);
+    Map(str, str) *map3 = map_new(str, str);
     set_map_hash(map3, &str_hash);
     set_map_key_eq(map3, &str_eq);
     map_insert(map3, "A", "1");
@@ -155,6 +155,6 @@ int main() {
     map_erase(map3, "B");
     assertTrue(map_count(map3, "B") == 0);
     assertTrue(map_size(map3) == 3);
-    free_map(map3);
+    map_free(map3);
 
 }

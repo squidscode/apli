@@ -34,7 +34,7 @@
 define_vector(int);
 
 int main() {
-    Vector(int)* vi = new_vector(int);
+ Vector(int)* vi = vector_new(int);
     assertTrue(vector_size(vi) == 0);
     vector_push_back(vi, 5);
     assertTrue(vector_size(vi) == 1);
@@ -66,7 +66,7 @@ int main() {
     assertTrue(vector_get(vi, 1) == 7);
     // exit(0);
 
-    Vector(int) *v = new_vector(int);
+    Vector(int) *v = vector_new(int);
     std::vector<int> v_test;
     for(int i = 0; i < NUM_TESTS; ++i) {
         std::vector<int> pp_vec;
@@ -143,6 +143,6 @@ int main() {
             dbif(vector_get(v, ind) == v_test[ind]);
         }
         vector_free(v);
-        v = new_vector(int); v_test.clear();
+        v = vector_new(int); v_test.clear();
     }
 }

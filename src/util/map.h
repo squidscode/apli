@@ -2,6 +2,7 @@
 #define MAP_C
 
 #include <stdlib.h>
+#include <assert.h>
 #include "vector.h"
 #include "list.h"
 
@@ -14,12 +15,15 @@
 Defines a map with the given key_type and value_type. 
 
 ----- Usage -----
-Map(T1, T2) *map = new_map(T1, T2);
+Map(T1, T2) *map = map_new(T1, T2);
+  set_map_hash(map, fn)             -> void
+  set_map_key_eq(map, fn)           -> void
   map_insert(map, key, value)       -> void
   map_at(map, key)                  -> value
   map_erase(map, key)               -> size_t
   map_count(map, key)               -> size_t
-  free_map(map)                     -> void
+  map_size(map)                     -> size_t
+  map_free(map)                     -> void
 
 */
 
@@ -90,7 +94,7 @@ Map(T1, T2) *map = new_map(T1, T2);
         size_t mask = (vector_size(map->buckets) - 1); \
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         if(bucket == NULL) { \
-            bucket = new_list(_##key_type##_##value_type##_map_match_t); \
+            bucket = list_new(_##key_type##_##value_type##_map_match_t); \
         } else { \
             map->fns->erase(map, key); \
         } \
@@ -140,8 +144,7 @@ Map(T1, T2) *map = new_map(T1, T2);
                 return match.val; \
             } \
         } while(iter_has_next(iter) && (iter = iter_next(iter), 1)); \
-        fprintf(stderr, "INVALID KEY SUPPLIED\n"); \
-        exit(INVKEY); \
+        assert(0 == "Invalid key"); \
     } \
     \
     size_t _##key_type##_##value_type##_map_erase_(_##key_type##_##value_type##_map_t *map, key_type key) { \
@@ -182,7 +185,7 @@ Map(T1, T2) *map = new_map(T1, T2);
         size_t buckets_size = vector_size(map->buckets); \
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
             _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, ind); \
-            if(bucket != NULL) free_list(bucket); \
+            if(bucket != NULL) list_free(bucket); \
         } \
         vector_free(map->buckets); \
         free(map); \
@@ -199,7 +202,7 @@ Map(T1, T2) *map = new_map(T1, T2);
     \
     _##key_type##_##value_type##_map_t* _##key_type##_##value_type##_new_map() { \
         _##key_type##_##value_type##_map_t *map = (_##key_type##_##value_type##_map_t*) malloc(sizeof(_##key_type##_##value_type##_map_t)); \
-        map->buckets = new_vector(_##key_type##_##value_type##_map_match_list_t); \
+        map->buckets = vector_new(_##key_type##_##value_type##_map_match_list_t); \
         vector_push_back(map->buckets, NULL); \
         map->size = 0; \
         map->fns = &_##key_type##_##value_type##_map_v_table_; \
@@ -211,7 +214,7 @@ Map(T1, T2) *map = new_map(T1, T2);
 #ifndef UNTYPED_MAP_FN
 #define UNTYPED_MAP_FN
 #define Map(key_type, value_type)                   _##key_type##_##value_type##_map_t
-#define new_map(key_type, value_type)               (_##key_type##_##value_type##_new_map())
+#define map_new(key_type, value_type)               (_##key_type##_##value_type##_new_map())
 #define set_map_key_eq(map, fn_ref)                 ((map)->key_eq = (fn_ref))
 #define set_map_hash(map, fn_ref)                   ((map)->hash = (fn_ref))
 #define map_insert(map, key, value)                 ((map)->fns->insert((map), (key), (value)))
@@ -219,7 +222,7 @@ Map(T1, T2) *map = new_map(T1, T2);
 #define map_erase(map, key)                         ((map)->fns->erase((map), (key)))
 #define map_count(map, key)                         ((map)->fns->count((map), (key)))
 #define map_size(map)                               ((map)->fns->size((map)))
-#define free_map(map)                               ((map)->fns->free((map)))
+#define map_free(map)                               ((map)->fns->free((map)))
 #endif
 
 #endif

@@ -90,7 +90,7 @@
 #ifndef UNTYPED_VECTOR_FN
 #define UNTYPED_VECTOR_FN
 #define Vector(TYPE)                        _##TYPE##_vector_t
-#define new_vector(TYPE)                    (_new_##TYPE##_vector())
+#define vector_new(TYPE)                    (_new_##TYPE##_vector())
 #define vector_get(vec, index)              ((vec)->_fns->get((vec), (index)))
 #define vector_set(vec, index, val)         ((vec)->_fns->set((vec), (index), (val)))
 #define vector_remove(vec, index)           ((vec)->_fns->remove((vec), (index)))

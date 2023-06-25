@@ -135,7 +135,7 @@
 #define iter_next(iter)             ((iter)->_next)
 #define iter_val(iter)              ((iter)->_val)
 #define iter_remove(iter, list)     ((list)->_fns->_remove_node((list), (iter)))
-#define new_list(TYPE)              (_new_##TYPE##_list())
+#define list_new(TYPE)              (_new_##TYPE##_list())
 #define list_size(list)             ((list)->_fns->_get_size(list))
 #define list_get_first(list)        ((list)->_fns->_get_first((list)))
 #define list_get_last(list)         ((list)->_fns->_get_last((list)))
@@ -143,7 +143,7 @@
 #define list_push_back(list, val)   ((list)->_fns->_push_back((list), (val)))
 #define list_pop_front(list)        ((list)->_fns->_pop_front((list)))
 #define list_pop_back(list)         ((list)->_fns->_pop_back((list)))
-#define free_list(list)             ((list)->_fns->_free((list)))
+#define list_free(list)             ((list)->_fns->_free((list)))
 #endif
 
 #endif
