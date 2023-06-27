@@ -1,6 +1,6 @@
 #include "../../src/util/list.h"
 #include <list>
-#include "../testlib/testlib.h"
+#include "../testlib/testlib.c"
 
 define_list(int);
 
@@ -18,7 +18,7 @@ define_list(int);
 */
 
 int main() {
-    List(int) *int_list = new_list(int);
+    List(int) *int_list = list_new(int);
     assertTrue(list_size(int_list) == 0);
     list_push_back(int_list, 1);
     assertTrue(list_size(int_list) == 1);
@@ -58,12 +58,12 @@ int main() {
     assertTrue(list_get_last(int_list) == 99999);
 
     // no assertions can be made for free without creating a mock.
-    free_list(int_list);
+    list_free(int_list);
 
     // brute force testing to look for memory leaks:
     std::list<int> list_mirror;
     for(int test = 0; test < 10000; ++test) { // 1000 tests
-        int_list = new_list(int);
+        int_list = list_new(int);
         for(int i = 0; i < 1000; ++i) {
             int val = rand();
             int st = rand() % 4;
@@ -95,6 +95,6 @@ int main() {
         assertTrueQuiet(passed);
         
         list_mirror.clear();
-        free_list(int_list);
+        list_free(int_list);
     }
 }

@@ -19,7 +19,8 @@
  * 
  * In order to avoid confusion, I will be separating the `function' representation
  * of a DFA from an interal (map-based) representation of a DFA
- *   - An `fdfa_t' is a dfa represented as a function pointer
+ *   - An `fdfa_t' is a dfa represented as a function closure (or a C-like representation of a 
+ *     function closure)
  *     - TYPE : [context] st.
  *       - call(context, const char*)   ->   size_t (indicating true[1] / false[0])
  *   - A `dfa_t' is a dfa represented through a directed graph. The internal representation

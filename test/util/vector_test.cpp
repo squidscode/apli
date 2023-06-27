@@ -1,5 +1,5 @@
 #include "../../src/util/vector.h"
-#include "../testlib/testlib.h"
+#include "../testlib/testlib.c"
 #include <cstdio>
 #include <vector>
 
