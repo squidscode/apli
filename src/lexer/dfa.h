@@ -1,5 +1,5 @@
-#ifndef DFA_C
-#define DFA_C
+#ifndef DFA_H
+#define DFA_H
 
 #include <assert.h>
 #include <string.h>
@@ -24,8 +24,8 @@
  *     - dfa_run(dfa, Iterator(TT))            ->   size_t
  *     - dfa_add_transition(dfa, ST, TT, ST)   ->   void
  *     - dfa_remove_transition(dfa, ST, TT)    ->   size_t
- *     - dfa_add_accept_state(dfa, ST)      ->   void
- *     - dfa_remove_accept_state(dfa, ST)   ->   size_t
+ *     - dfa_add_accept_state(dfa, ST)         ->   void
+ *     - dfa_remove_accept_state(dfa, ST)      ->   size_t
  *     - dfa_free(dfa)                         ->   void
  *     - dfa_to_fdfa(dfa)                      ->   fdfa_t
  *       ^^^^^^^^^^^^^^^^ locks the dfa
@@ -37,8 +37,8 @@
 
 #ifndef UNTYPED_DFA_FNS
 #define UNTYPED_DFA_FNS
-#define DFA(st, tt)                                 _##st##_##tt##_dfa_t
-#define FDFA(st, tt)                                _##st##_##tt##_fdfa_t
+#define Dfa(st, tt)                                 _##st##_##tt##_dfa_t
+#define Fdfa(st, tt)                                _##st##_##tt##_fdfa_t
 #define dfa_run(dfa, iter)                          ((dfa)->fns->run((dfa), (iter)))
 #define dfa_add_transition(dfa, from, trans, to)    ((dfa)->fns->add_transition((dfa), (from), (trans), (to)))
 #define dfa_remove_transition(dfa, state, trans)    ((dfa)->fns->remove_transition((dfa), (state), (trans)))

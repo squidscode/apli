@@ -9,7 +9,7 @@ Iterator(char)* str_to_iter(const char*);
 
 int main() {
     // A simple DFA:
-    DFA(int, char) *dfa1 = dfa_new(int, char, 0);
+    Dfa(int, char) *dfa1 = dfa_new(int, char, 0);
     dfa_add_transition(dfa1, 0, 'A', 1); dfa_add_transition(dfa1, 1, 'B', 2);
     dfa_add_transition(dfa1, 0, 'B', 2); dfa_add_transition(dfa1, 2, 'C', 3);
     dfa_add_transition(dfa1, 0, 'C', 3); dfa_add_transition(dfa1, 3, 'D', 4);
@@ -28,7 +28,7 @@ int main() {
     strcpy(buf, "ABCDEFG"); assertTrue(1 == dfa_run(dfa1, str_to_iter(buf)));
     strcpy(buf, "EFG");     assertTrue(1 == dfa_run(dfa1, str_to_iter(buf)));
 
-    FDFA(int, char) *fdfa = dfa_to_fdfa(dfa1);
+    Fdfa(int, char) *fdfa = dfa_to_fdfa(dfa1);
     assertTrue(0 == call(fdfa, str_to_iter("abc")));
     assertTrue(1 == call(fdfa, str_to_iter("BCDEFG")));
     assertTrue(1 == call(fdfa, str_to_iter("FG")));
@@ -37,7 +37,7 @@ int main() {
     fdfa_free(fdfa);
 
     // Accepts strings that represent numbers.
-    DFA(int, char) *number_dfa = dfa_new(int, char, 0);
+    Dfa(int, char) *number_dfa = dfa_new(int, char, 0);
     dfa_add_transition(number_dfa, 0, '-', 0); dfa_add_transition(number_dfa, 1, '0', 1);
     dfa_add_transition(number_dfa, 0, '1', 1); dfa_add_transition(number_dfa, 1, '1', 1);
     dfa_add_transition(number_dfa, 0, '2', 1); dfa_add_transition(number_dfa, 1, '2', 1);
@@ -81,7 +81,7 @@ int main() {
     dfa_remove_accept_state(number_dfa, 0);
     assertTrue(0 == dfa_run(number_dfa, str_to_iter("")));
 
-    
+    dfa_free(number_dfa);
 }
 
 Iterator(char)* str_to_iter(const char* str) {
