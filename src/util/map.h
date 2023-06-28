@@ -27,10 +27,6 @@ Map(T1, T2) *map = map_new(T1, T2);
 
 */
 
-// TODO define a default_key_equals function that checks all bytes in both keys to determine
-// if equal
-// TODO map_size function
-
 #define define_map(key_type, value_type) \
     struct _##key_type##_##value_type##_map_; \
     /* Virtual function table for dynamic dispatch (polymorphism) */ \
@@ -112,7 +108,8 @@ Map(T1, T2) *map = map_new(T1, T2);
         for(size_t i = 0; i < buckets_size; ++i) { \
             size_t mask = (new_cap - 1); \
             _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, i); \
-            if(bucket == NULL) continue; \
+            if(bucket == NULL) \
+                continue; \
             size_t list_size = list_size(bucket); \
             for(size_t ind = 0; ind < list_size; ++ind) { \
                 _##key_type##_##value_type##_map_match_t match = list_get_first(bucket); \
@@ -138,12 +135,12 @@ Map(T1, T2) *map = map_new(T1, T2);
         size_t key_hash = map->hash(key); \
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
-        do { \
+        while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
-            if(match.hash == key_hash && map->key_eq(match.key, key)) { \
+            if(match.hash == key_hash && map->key_eq(match.key, key)) \
                 return match.val; \
-            } \
-        } while(iter_has_next(iter) && (iter = iter_next(iter), 1)); \
+            iter = iter_next(iter); \
+        } \
         assert(0 == "Invalid key"); \
     } \
     \
@@ -153,14 +150,15 @@ Map(T1, T2) *map = map_new(T1, T2);
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         if(bucket == NULL || list_size(bucket) == 0) return 0; \
         Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
-        do { \
+        while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
             if(match.hash == key_hash && map->key_eq(match.key, key)) { \
                 iter_remove(iter, bucket); \
                 map->size -= 1; \
                 return 1; \
             }; \
-        } while(iter_has_next(iter) && (iter = iter_next(iter), 1)); \
+            iter = iter_next(iter); \
+        } \
         return 0; \
     } \
     \
@@ -170,10 +168,12 @@ Map(T1, T2) *map = map_new(T1, T2);
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         if(bucket == NULL || list_size(bucket) == 0) return 0; \
         Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
-        do { \
+        while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
-            if(match.hash == key_hash && map->key_eq(match.key, key)) return 1; \
-        } while(iter_has_next(iter) && (iter = iter_next(iter), 1)); \
+            if(match.hash == key_hash && map->key_eq(match.key, key)) \
+                return 1; \
+            iter = iter_next(iter); \
+        } \
         return 0; \
     } \
     \

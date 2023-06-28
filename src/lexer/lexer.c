@@ -1,7 +1,7 @@
 #include "../util/map.h"
 #include "../util/vector.h"
 #include "../util/list.h"
-#include "./dfa.c"
+#include "dfa.h"
 
 #ifndef call
 #define call(context, arg)      ((context)->call((context), (arg)))
@@ -31,7 +31,6 @@
 
 struct _token_rule_ {
     const char* name;
-    fdfa_t *fdfa;
 };
 
 // define_vector();
