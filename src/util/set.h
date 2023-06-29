@@ -1,5 +1,5 @@
-#ifndef MAP_C
-#define MAP_C
+#ifndef SET_H
+#define SET_H
 
 #include <stdlib.h>
 #include <assert.h>
@@ -11,51 +11,47 @@
 
 /**
  *
- * Defines a map with the given key_type and value_type. 
+ * Defines a set with the given type. 
  * 
  * ----- Usage -----
- * Map(T1, T2) *map = map_new(T1, T2);
- *   set_map_hash(map, fn)             -> void
- *   set_map_key_eq(map, fn)           -> void
- *   map_insert(map, key, value)       -> void
- *   map_at(map, key)                  -> value
- *   map_erase(map, key)               -> size_t
- *   map_count(map, key)               -> size_t
- *   map_size(map)                     -> size_t
- *   map_free(map)                     -> void
+ * Set(type) *set = set_new(type);
+ *   set_set_hash(set, fn)             -> void
+ *   set_set_key_eq(set, fn)           -> void
+ *   set_insert(set, key, value)       -> void
+ *   set_erase(set, key)               -> size_t
+ *   set_count(set, key)               -> size_t
+ *   set_size(set)                     -> size_t
+ *   set_free(set)                     -> void
  */
 
-#ifndef UNTYPED_MAP_FN
-#define UNTYPED_MAP_FN
-#define Map(key_type, value_type)                   _##key_type##_##value_type##_map_t
-#define map_new(key_type, value_type)               (_##key_type##_##value_type##_new_map())
-#define set_map_key_eq(map, fn_ref)                 ((map)->key_eq = (fn_ref))
-#define set_map_hash(map, fn_ref)                   ((map)->hash = (fn_ref))
-#define map_insert(map, key, value)                 ((map)->fns->insert((map), (key), (value)))
-#define map_at(map, key)                            ((map)->fns->at((map), (key)))
-#define map_erase(map, key)                         ((map)->fns->erase((map), (key)))
-#define map_count(map, key)                         ((map)->fns->count((map), (key)))
-#define map_size(map)                               ((map)->fns->size((map)))
-#define map_free(map)                               ((map)->fns->free((map)))
+#ifndef UNTYPED_SET_FN
+#define UNTYPED_SET_FN
+#define Set(key_type, value_type)                   _##key_type##_##value_type##_set_t
+#define set_new(key_type, value_type)               (_##key_type##_##value_type##_new_set())
+#define set_set_key_eq(set, fn_ref)                 ((set)->key_eq = (fn_ref))
+#define set_set_hash(set, fn_ref)                   ((set)->hash = (fn_ref))
+#define set_insert(set, key, value)                 ((set)->fns->insert((set), (key), (value)))
+#define set_erase(set, key)                         ((set)->fns->erase((set), (key)))
+#define set_count(set, key)                         ((set)->fns->count((set), (key)))
+#define set_size(set)                               ((set)->fns->size((set)))
+#define set_free(set)                               ((set)->fns->free((set)))
 #endif
 
-#define define_map(key_type, value_type) \
-    struct _##key_type##_##value_type##_map_; \
+#define define_set(type) \
+    struct _##type##_set_; \
     /* Virtual function table for dynamic dispatch (polymorphism) */ \
-    typedef struct _##key_type##_##value_type##_map_fns_ { \
-        void (*insert)(struct _##key_type##_##value_type##_map_*, key_type, value_type); \
-        value_type (*at)(struct _##key_type##_##value_type##_map_*, key_type); \
-        size_t (*erase)(struct _##key_type##_##value_type##_map_*, key_type); \
-        size_t (*count)(struct _##key_type##_##value_type##_map_*, key_type); \
-        size_t (*size)(struct _##key_type##_##value_type##_map_*); \
-        void (*free)(struct _##key_type##_##value_type##_map_*); \
-    } _##key_type##_##value_type##_map_fns_t; \
+    typedef struct _##type##_set_fns_ { \
+        void (*insert)(struct _##key_type##_##value_type##_set_*, key_type, value_type); \
+        size_t (*erase)(struct _##key_type##_##value_type##_set_*, key_type); \
+        size_t (*count)(struct _##key_type##_##value_type##_set_*, key_type); \
+        size_t (*size)(struct _##key_type##_##value_type##_set_*); \
+        void (*free)(struct _##key_type##_##value_type##_set_*); \
+    } _##type##_set_fns_t; \
     \
-    /* A `map_match` holds information about a single (key, value) pair. */ \
+    /* A `set_match` holds information about a single (key, value) pair. */ \
     typedef struct _##key_type##_##value_type##_map_match_ { \
         size_t hash; \
-        key_type key; \
-        value_type val; \
+        type value; \
     } _##key_type##_##value_type##_map_match_t; \
     /* List+Vector definitions for buckets of `map_match`s. */ \
     define_list(_##key_type##_##value_type##_map_match_t); \

@@ -27,7 +27,7 @@
  *     - dfa_add_accept_state(dfa, ST)         ->   void
  *     - dfa_remove_accept_state(dfa, ST)      ->   size_t
  *     - dfa_free(dfa)                         ->   void
- *     - dfa_to_fdfa(dfa)                      ->   fdfa_t
+ *     - dfa_to_fdfa(dfa)                      ->   fdfa_t *
  *       ^^^^^^^^^^^^^^^^ locks the dfa
  * 
  * ----- FDFA (An immutable DFA) -----

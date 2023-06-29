@@ -4,7 +4,9 @@
 #include "dfa.h"
 
 /**
- * An NFA is simply a DFA that uses the nfa_transition. 
+ * An NFA is simply a DFA that uses the nfa_transition. Internally, each transition is from a 
+ * `set of states' to another `set of states' through an `nfa_transition'. NFA construction is done
+ * as new transitions are added to the graph (so the nfa_to_dfa call is, virtually, an O(1) call).
  *
  * Usage:
  * ----- NFA -----
@@ -12,13 +14,13 @@
  *     - nfa_add_transition(nfa, ST, TT, ST)         ->   void
  *     - nfa_add_epsilon_transition(nfa, ST, ST)     ->   void
  *     - nfa_add_kleen_star(nfa, ST, ST)             ->   void
- *     - nfa_remove_transition(nfa, ST, TT)          ->   size_t
+ *     - nfa_remove_transition(nfa, ST, TT, ST)      ->   size_t
  *     - nfa_remove_epsilon_transition(nfa, ST, ST)  ->   size_t
  *     - nfa_remove_kleen_star(nfa, ST, ST)          ->   size_t
  *     - nfa_add_accept_state(nfa, ST)               ->   void
  *     - nfa_remove_accept_state(nfa, ST)            ->   size_t
  *     - nfa_free(nfa)                               ->   void
- *     - nfa_to_dfa(nfa)                             ->   dfa_t
+ *     - nfa_to_dfa(nfa)                             ->   dfa_t *
  */
 
 #ifndef UNTYPED_NFA_FNS
@@ -49,7 +51,20 @@
     define_nfa_transition_type(tt); \
     typedef Vector(st)* st_vector_ptr; \
     define_list(_##tt##_nfa_transition_t); \
-    define_dfa(st_vector_ptr, _##tt##_nfa_transition_t);
+    define_dfa(st_vector_ptr, _##tt##_nfa_transition_t); \
+    \
+    /* Virtual table for mutable DFA functions */ \
+    struct _##st##_##tt##_nfa_fns_ { \
+        void (*add_transition)(struct _##st##_##tt##_nfa_*, st, tt, st); \
+        void (*add_epsilon_transition)(struct _##st##_##tt##_nfa_*, st, st); \
+        void (*add_kleen_star_transition)(struct _##st##_##tt##_nfa_*, st, st); \
+        size_t (*remove_transition)(struct _##st##_##tt##_nfa_*, st, tt, st); \
+        size_t (*remove_epsilon_transition)(struct _##st##_##tt##_nfa_*, st, st); \
+        size_t (*remove_kleen_star_transition)(struct _##st##_##tt##_nfa_*, st, st); \
+        void (*add_accept_state)(struct _##st##_##tt##_nfa_*, st); \
+        size_t (*remove_accept_state)(struct _##st##_##tt##_nfa_*, st); \
+        void (*free)(struct _##st##_##tt##_nfa_*); \
+    }; \
     
 define_vector(int);
 define_list(char);
