@@ -6,6 +6,7 @@
 #include "../util/list.h"
 #include "../util/vector.h"
 #include "../util/map.h"
+#include "../util/set.h"
 
 #ifndef call 
 #define call(context, arg)      ((context)->call((context), (arg)))
@@ -56,19 +57,14 @@
         state_type state; \
         transition_type transition; \
     }; \
-    typedef struct _##state_type##_##transition_type##_transition_ _##state_type##_##transition_type##_transition_t; \
-    \
-    struct _##state_type##_##transition_type##_state_data_ { \
-        unsigned int accept_flag : 1; \
-    }; \
-    typedef struct _##state_type##_##transition_type##_state_data_ _##state_type##_##transition_type##_state_data_t; 
+    typedef struct _##state_type##_##transition_type##_transition_ _##state_type##_##transition_type##_transition_t
 
 
 #define init_dfa_types(st, tt) \
     /* Type definitions: */ \
     define_transition(st, tt); \
     define_map(_##st##_##tt##_transition_t, st); \
-    define_map(st, _##st##_##tt##_state_data_t) \
+    define_set(st)
 
 // Defines a dfa with state_type (st) and transition_type (tt)
 #define define_dfa(st, tt) \
@@ -93,7 +89,7 @@
         _##st##_##tt##_transition_t tmp_trans; \
         Map(_##st##_##tt##_transition_t, st) *transition_map; \
         st begin_state; \
-        Map(st, _##st##_##tt##_state_data_t) *accept_states; \
+        Set(st) *accept_states; \
         unsigned int is_locked : 1; \
         _##st##_##tt##_dfa_fns_t *fns; \
     }; \
@@ -117,7 +113,7 @@
                 return 0; \
             transition_iter = iter_next(transition_iter); \
         } \
-        return map_count(dfa->accept_states, current_state); \
+        return set_count(dfa->accept_states, current_state); \
     } \
     \
     void _##st##_##tt##_dfa_add_transition(_##st##_##tt##_dfa_t *dfa, st from, tt transition, st to) { \
@@ -135,18 +131,17 @@
     \
     void _##st##_##tt##_dfa_add_accepting_state( _##st##_##tt##_dfa_t *dfa, st state) { \
         _##st##_##tt##_assert_is_not_locked(dfa); \
-        _##st##_##tt##_state_data_t sd = {1}; \
-        map_insert(dfa->accept_states, state, sd); \
+        set_insert(dfa->accept_states, state); \
     } \
     \
     size_t _##st##_##tt##_dfa_remove_accepting_state(_##st##_##tt##_dfa_t *dfa, st state) { \
         _##st##_##tt##_assert_is_not_locked(dfa); \
-        return map_erase(dfa->accept_states, state); \
+        return set_erase(dfa->accept_states, state); \
     } \
     \
     void _##st##_##tt##_dfa_free(_##st##_##tt##_dfa_t *dfa) { \
         map_free(dfa->transition_map); \
-        map_free(dfa->accept_states); \
+        set_free(dfa->accept_states); \
     } \
     \
     size_t _##st##_##tt##_fdfa_call(_##st##_##tt##_fdfa_t *fdfa, Iterator(tt) *iter) { \
@@ -179,7 +174,7 @@
         _##st##_##tt##_dfa_t *new_dfa = (_##st##_##tt##_dfa_t*) malloc(sizeof(_##st##_##tt##_dfa_t)); \
         new_dfa->transition_map = map_new(_##st##_##tt##_transition_t, st); \
         new_dfa->begin_state = begin_state; \
-        new_dfa->accept_states = map_new(st, _##st##_##tt##_state_data_t); \
+        new_dfa->accept_states = set_new(st); \
         new_dfa->is_locked = 0; \
         new_dfa->fns = &_##st##_##tt##_fns; \
         return new_dfa; \
