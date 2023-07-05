@@ -4,5 +4,5 @@ init_nfa(int, char);
 define_nfa(int, char);
 
 int main() {
-    
+
 }

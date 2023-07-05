@@ -1,6 +1,7 @@
 #include "../testlib/testlib.c"
 #include "../../src/lexer/dfa.h"
 
+define_list(int);
 define_list(char);
 define_dfa(int, char);
 
@@ -82,6 +83,8 @@ int main() {
     assertTrue(0 == dfa_run(number_dfa, str_to_iter("")));
 
     dfa_free(number_dfa);
+
+    teardown_tests();
 }
 
 Iterator(char)* str_to_iter(const char* str) {

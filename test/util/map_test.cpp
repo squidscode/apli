@@ -2,14 +2,17 @@
 #include "../testlib/testlib.c"
 #include <cstdio>
 #include <string.h>
+#include <set>
 
 define_map(int, char);
-
+typedef const char* str;
+define_map(str, str);
 typedef struct _ch_buf_ {
     char buf[50];
 } ch_buf;
-
 define_map(ch_buf, int);
+define_map(char, int);
+
 
 size_t ch_buf_eq(ch_buf str1, ch_buf str2) {
     return strcmp(str1.buf, str2.buf) == 0;
@@ -28,9 +31,6 @@ size_t ch_buf_hash(ch_buf str1) {
     return hash;
 }
 
-typedef const char* str;
-
-define_map(str, str);
 
 size_t str_eq(const char* str1, const char* str2) {
     return strcmp(str1, str2) == 0;
@@ -157,4 +157,27 @@ int main() {
     assertTrue(map_size(map3) == 3);
     map_free(map3);
 
+    Map(char, int) *char_to_ascii = map_new(char, int);
+    for(char c = 'A'; c <= 'Z'; ++c) {
+        map_insert(char_to_ascii, c, c);
+    }
+    for(char c = 'a'; c <= 'z'; ++c) {
+        map_insert(char_to_ascii, c, c);
+    }
+    auto list_of_matches = map_get_list(char_to_ascii);
+    assertTrue(26 * 2 == list_size(list_of_matches)); // check the size of the list
+    std::set<char> ch_set;
+    auto iter = get_iterator(list_of_matches);
+    while(iter != NULL) {
+        assertTrue(0 == ch_set.count(iter_val(iter).key));
+        ch_set.insert(iter_val(iter).key);
+        assertTrue(iter_val(iter).key == iter_val(iter).value);
+        iter = iter_next(iter);
+    }
+    assertTrue(26 * 2 == list_size(list_of_matches));
+    assertTrue(26 * 2 == map_size(char_to_ascii));
+    list_free(list_of_matches);
+    map_free(char_to_ascii);
+
+    teardown_tests();
 }

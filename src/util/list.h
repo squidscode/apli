@@ -3,6 +3,27 @@
 
 #include <stdlib.h>
 
+
+#ifndef UNTYPED_LIST_FN
+#define UNTYPED_LIST_FN
+#define List(TYPE)                  TYPE##_list_t
+#define Iterator(TYPE)              TYPE##_list_node_t
+#define get_iterator(list)          ((list)->_first)
+#define iter_has_next(iter)         ((iter)->_next != NULL)
+#define iter_next(iter)             ((iter)->_next)
+#define iter_val(iter)              ((iter)->_val)
+#define iter_remove(iter, list)     ((list)->_fns->_remove_node((list), (iter)))
+#define list_new(TYPE)              (_new_##TYPE##_list())
+#define list_size(list)             ((list)->_fns->_get_size(list))
+#define list_get_first(list)        ((list)->_fns->_get_first((list)))
+#define list_get_last(list)         ((list)->_fns->_get_last((list)))
+#define list_push_front(list, val)  ((list)->_fns->_push_front((list), (val)))
+#define list_push_back(list, val)   ((list)->_fns->_push_back((list), (val)))
+#define list_pop_front(list)        ((list)->_fns->_pop_front((list)))
+#define list_pop_back(list)         ((list)->_fns->_pop_back((list)))
+#define list_free(list)             ((list)->_fns->_free((list)))
+#endif
+
 #define define_list(TYPE)                       \
     struct _##TYPE##_list_;                     \
     typedef struct _##TYPE##_list_node_ {       \
@@ -35,6 +56,7 @@
         } else { \
             node->_prev->_next = node->_next; \
             node->_next->_prev = node->_prev; \
+            list->_size -= 1; \
             free(node); \
         } \
     } \
@@ -126,24 +148,5 @@
     }                                                       \
 
 
-#ifndef UNTYPED_LIST_FN
-#define UNTYPED_LIST_FN
-#define List(TYPE)                  TYPE##_list_t
-#define Iterator(TYPE)              TYPE##_list_node_t
-#define get_iterator(list)          ((list)->_first)
-#define iter_has_next(iter)         ((iter)->_next != NULL)
-#define iter_next(iter)             ((iter)->_next)
-#define iter_val(iter)              ((iter)->_val)
-#define iter_remove(iter, list)     ((list)->_fns->_remove_node((list), (iter)))
-#define list_new(TYPE)              (_new_##TYPE##_list())
-#define list_size(list)             ((list)->_fns->_get_size(list))
-#define list_get_first(list)        ((list)->_fns->_get_first((list)))
-#define list_get_last(list)         ((list)->_fns->_get_last((list)))
-#define list_push_front(list, val)  ((list)->_fns->_push_front((list), (val)))
-#define list_push_back(list, val)   ((list)->_fns->_push_back((list), (val)))
-#define list_pop_front(list)        ((list)->_fns->_pop_front((list)))
-#define list_pop_back(list)         ((list)->_fns->_pop_back((list)))
-#define list_free(list)             ((list)->_fns->_free((list)))
-#endif
 
 #endif

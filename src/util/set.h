@@ -23,10 +23,7 @@
  *   set_size(set)                     -> size_t
  *   set_equals(set1, set2)            -> size_t
  *   set_free(set)                     -> void
- *
- * SetIterator(type) *iter = set_iterator(set);
- *   set_iterator_is_null(set_iterator) -> size_t
- *   set_iterator_next(set_iterator)    -> SetIterator(type)
+ *   set_get_list(set)                 -> List(type)*
  */
 
 #ifndef UNTYPED_SET_FN
@@ -40,11 +37,8 @@
 #define set_count(set, value)                       ((set)->fns->count((set), (value)))
 #define set_size(set)                               ((set)->fns->size((set)))
 #define set_equals(set1, set2)                      ((set1)->fns->equals((set1), (set2)))
-#define set_free(set)                               ((set)->fns->free((set)))
-#define SetIterator(type)
-#define set_iterator(set)                           ((set)->fns->iterator((set)))
-#define set_iterator_is_null(iterator)
-#define set_iterator_next(iterator)
+#define set_free(set)                               ((set)->fns->destroy((set)))
+#define set_get_list(set)                           ((set)->fns->get_element_list((set)))
 #endif
 
 #define define_set_hash(type) \
@@ -71,7 +65,8 @@
         size_t (*count)(struct _##type##_set_*, type); \
         size_t (*size)(struct _##type##_set_*); \
         size_t (*equals)(struct _##type##_set_*, struct _##type##_set_*); \
-        void (*free)(struct _##type##_set_*); \
+        List(type)* (*get_element_list)(struct _##type##_set_*); \
+        void (*destroy)(struct _##type##_set_*); \
     } _##type##_set_fns_t; \
     \
     /* A `set_match` holds information about a single value. */ \
@@ -229,13 +224,30 @@
         free(set); \
     } \
     \
+    List(type)* _##type##_set_get_element_list(struct _##type##_set_* set) { \
+        List(type) *list = list_new(type); \
+        size_t buckets_size = vector_size(set->buckets); \
+        for(size_t ind = 0; ind < buckets_size; ++ind) { \
+            _##type##_set_match_list_t bucket = vector_get(set->buckets, ind); \
+            if(bucket == NULL || list_size(bucket) == 0) continue; \
+            Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
+            while(iter != NULL) { \
+                _##type##_set_match_t match = iter_val(iter); \
+                list_push_back(list, match.value); \
+                iter = iter_next(iter); \
+            } \
+        } \
+        return list; \
+    } \
+    \
     _##type##_set_fns_t _##type##_set_v_table_ = { \
         &_##type##_set_insert_, \
         &_##type##_set_erase_, \
         &_##type##_set_count_, \
         &_##type##_set_size_, \
         &_##type##_set_equals_, \
-        &_##type##_set_free_, \
+        &_##type##_set_get_element_list, \
+        &_##type##_set_free_ \
     }; \
     \
     _##type##_set_t* _##type##_new_set() { \

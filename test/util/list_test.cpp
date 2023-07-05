@@ -97,4 +97,6 @@ int main() {
         list_mirror.clear();
         list_free(int_list);
     }
+
+    teardown_tests();
 }

@@ -15,14 +15,16 @@
  * 
  * ----- Usage -----
  * Map(T1, T2) *map = map_new(T1, T2);
- *   set_map_hash(map, fn)             -> void
- *   set_map_key_eq(map, fn)           -> void
- *   map_insert(map, key, value)       -> void
- *   map_at(map, key)                  -> value
- *   map_erase(map, key)               -> size_t
- *   map_count(map, key)               -> size_t
- *   map_size(map)                     -> size_t
- *   map_free(map)                     -> void
+ *   set_map_hash(map, fn)                  -> void
+ *   set_map_key_eq(map, fn)                -> void
+ *   map_insert(map, key, value)            -> void
+ *   map_at(map, key)                       -> value
+ *   map_erase(map, key)                    -> size_t
+ *   map_count(map, key)                    -> size_t
+ *   map_size(map)                          -> size_t
+ *   map_get_list(map)                      -> List(map_match)*
+ *   ^^^ Use map_match.key and map_match.value to unpack the match
+ *   map_free(map)                          -> void
  */
 
 #ifndef UNTYPED_MAP_FN
@@ -36,10 +38,22 @@
 #define map_erase(map, key)                         ((map)->fns->erase((map), (key)))
 #define map_count(map, key)                         ((map)->fns->count((map), (key)))
 #define map_size(map)                               ((map)->fns->size((map)))
-#define map_free(map)                               ((map)->fns->free((map)))
+#define map_free(map)                               ((map)->fns->destroy((map)))
+#define map_get_list(map)                           ((map)->fns->get_list((map)))
 #endif
 
 #define define_map(key_type, value_type) \
+    /* A `map_match` holds information about a single (key, value) pair. */ \
+    typedef struct _##key_type##_##value_type##_map_match_ { \
+        size_t hash; \
+        key_type key; \
+        value_type value; \
+    } _##key_type##_##value_type##_map_match_t; \
+    /* List+Vector definitions for buckets of `map_match`s. */ \
+    define_list(_##key_type##_##value_type##_map_match_t); \
+    typedef List(_##key_type##_##value_type##_map_match_t)* _##key_type##_##value_type##_map_match_list_t; \
+    define_vector(_##key_type##_##value_type##_map_match_list_t); \
+    \
     struct _##key_type##_##value_type##_map_; \
     /* Virtual function table for dynamic dispatch (polymorphism) */ \
     typedef struct _##key_type##_##value_type##_map_fns_ { \
@@ -48,19 +62,9 @@
         size_t (*erase)(struct _##key_type##_##value_type##_map_*, key_type); \
         size_t (*count)(struct _##key_type##_##value_type##_map_*, key_type); \
         size_t (*size)(struct _##key_type##_##value_type##_map_*); \
-        void (*free)(struct _##key_type##_##value_type##_map_*); \
+        List(_##key_type##_##value_type##_map_match_t)* (*get_list)(struct _##key_type##_##value_type##_map_*); \
+        void (*destroy)(struct _##key_type##_##value_type##_map_*); \
     } _##key_type##_##value_type##_map_fns_t; \
-    \
-    /* A `map_match` holds information about a single (key, value) pair. */ \
-    typedef struct _##key_type##_##value_type##_map_match_ { \
-        size_t hash; \
-        key_type key; \
-        value_type val; \
-    } _##key_type##_##value_type##_map_match_t; \
-    /* List+Vector definitions for buckets of `map_match`s. */ \
-    define_list(_##key_type##_##value_type##_map_match_t); \
-    typedef List(_##key_type##_##value_type##_map_match_t)* _##key_type##_##value_type##_map_match_list_t; \
-    define_vector(_##key_type##_##value_type##_map_match_list_t); \
     \
     /* A `map` contains a hash function, buckets of `map_match`, the size of the map, */ \
     typedef struct _##key_type##_##value_type##_map_ { \
@@ -126,7 +130,7 @@
             for(size_t ind = 0; ind < list_size; ++ind) { \
                 _##key_type##_##value_type##_map_match_t match = list_get_first(bucket); \
                 list_pop_front(bucket); \
-                _allocate_into_bucket_##key_type##_##value_type##_map_(map, match.hash, match.key, match.val); \
+                _allocate_into_bucket_##key_type##_##value_type##_map_(map, match.hash, match.key, match.value); \
             } \
         } \
     } \
@@ -150,7 +154,7 @@
         while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
             if(match.hash == key_hash && map->key_eq(match.key, key)) \
-                return match.val; \
+                return match.value; \
             iter = iter_next(iter); \
         } \
         assert(0 == "Invalid key"); \
@@ -193,6 +197,23 @@
         return map->size; \
     } \
     \
+    List(_##key_type##_##value_type##_map_match_t)* _##key_type##_##value_type##_map_get_list_( \
+        _##key_type##_##value_type##_map_t *map) { \
+        List(_##key_type##_##value_type##_map_match_t)* matches = list_new(_##key_type##_##value_type##_map_match_t); \
+        size_t buckets_size = vector_size(map->buckets); \
+        for(size_t ind = 0; ind < buckets_size; ++ind) { \
+            _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, ind); \
+            if(bucket != NULL) { \
+                Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
+                while(iter != NULL) { \
+                    list_push_back(matches, iter_val(iter)); \
+                    iter = iter_next(iter); \
+                } \
+            } \
+        } \
+        return matches; \
+    } \
+    \
     void _##key_type##_##value_type##_map_free_(_##key_type##_##value_type##_map_t *map) { \
         size_t buckets_size = vector_size(map->buckets); \
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
@@ -209,6 +230,7 @@
         &_##key_type##_##value_type##_map_erase_, \
         &_##key_type##_##value_type##_map_count_, \
         &_##key_type##_##value_type##_map_size_, \
+        &_##key_type##_##value_type##_map_get_list_, \
         &_##key_type##_##value_type##_map_free_, \
     }; \
     \

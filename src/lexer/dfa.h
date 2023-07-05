@@ -45,9 +45,9 @@
 #define dfa_remove_transition(dfa, state, trans)    ((dfa)->fns->remove_transition((dfa), (state), (trans)))
 #define dfa_add_accept_state(dfa, state)            ((dfa)->fns->add_accept_state((dfa), (state)))
 #define dfa_remove_accept_state(dfa, state)         ((dfa)->fns->remove_accept_state((dfa), (state)))
-#define dfa_free(dfa)                               ((dfa)->fns->free((dfa)))
+#define dfa_free(dfa)                               ((dfa)->fns->destroy((dfa)))
 #define dfa_to_fdfa(dfa)                            ((dfa)->fns->dfa_to_fdfa((dfa)))
-#define fdfa_free(fdfa)                             ((fdfa)->free((fdfa)))
+#define fdfa_free(fdfa)                             ((fdfa)->destroy((fdfa)))
 #define dfa_new(st, tt, begin_state)                (_##st##_##tt##_dfa_new(begin_state))
 #endif
 
@@ -79,7 +79,7 @@
         size_t (*remove_transition)(struct _##st##_##tt##_dfa_*, st, tt); \
         void (*add_accept_state)(struct _##st##_##tt##_dfa_*, st); \
         size_t (*remove_accept_state)(struct _##st##_##tt##_dfa_*, st); \
-        void (*free)(struct _##st##_##tt##_dfa_*); \
+        void (*destroy)(struct _##st##_##tt##_dfa_*); \
         _##st##_##tt##_fdfa_t* (*dfa_to_fdfa)(struct _##st##_##tt##_dfa_*); \
     }; \
     typedef struct _##st##_##tt##_dfa_fns_ _##st##_##tt##_dfa_fns_t; \
@@ -157,7 +157,7 @@
         _##st##_##tt##_fdfa_t *new_fdfa = (_##st##_##tt##_fdfa_t*) malloc(sizeof(_##st##_##tt##_fdfa_t)); \
         new_fdfa->dfa = dfa; \
         new_fdfa->call = &_##st##_##tt##_fdfa_call; \
-        new_fdfa->free = &_##st##_##tt##_fdfa_free; \
+        new_fdfa->destroy = &_##st##_##tt##_fdfa_free; \
         dfa->is_locked = 1; \
         return new_fdfa; \
     } \
@@ -192,7 +192,7 @@
     struct _##st##_##tt##_fdfa_ { \
         struct _##st##_##tt##_dfa_ *dfa; \
         size_t (*call)(struct _##st##_##tt##_fdfa_*, Iterator(tt)*); \
-        void (*free)(struct _##st##_##tt##_fdfa_*); \
+        void (*destroy)(struct _##st##_##tt##_fdfa_*); \
     }; \
     typedef struct _##st##_##tt##_fdfa_ _##st##_##tt##_fdfa_t;    
 

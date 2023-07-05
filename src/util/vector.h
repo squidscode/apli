@@ -3,10 +3,25 @@
 
 #include <stdlib.h>
 
+#ifndef UNTYPED_VECTOR_FN
+#define UNTYPED_VECTOR_FN
+#define Vector(TYPE)                        _##TYPE##_vector_t
+#define vector_new(TYPE)                    (_new_##TYPE##_vector())
+#define vector_get(vec, index)              ((vec)->_fns->get((vec), (index)))
+#define vector_set(vec, index, val)         ((vec)->_fns->set((vec), (index), (val)))
+#define vector_remove(vec, index)           ((vec)->_fns->remove((vec), (index)))
+#define vector_pop_back(vec)                ((vec)->_fns->pop_back((vec)))
+#define vector_push_back(vec, val)          ((vec)->_fns->push_back((vec), (val)))
+#define vector_resize(vec, size)            ((vec)->_fns->resize((vec), (size), 0))
+#define vector_resize_val(vec, size, val)   ((vec)->_fns->resize((vec), (size), (val)))             
+#define vector_size(vec)                    ((vec)->_fns->size((vec)))
+#define vector_free(vec)                    ((vec)->_fns->destroy((vec)))
+#endif
+
 #define define_vector(TYPE)                 \
     struct _##TYPE##_vector_;               \
     typedef struct _##TYPE##_vector_fns_ {  \
-        void (*free)(struct _##TYPE##_vector_*);                \
+        void (*destroy)(struct _##TYPE##_vector_*);                \
         TYPE (*get)(struct _##TYPE##_vector_*, size_t);         \
         void (*set)(struct _##TYPE##_vector_*, size_t, TYPE);   \
         TYPE (*remove)(struct _##TYPE##_vector_*, size_t);      \
@@ -87,19 +102,5 @@
         return new_vec;                     \
     }
 
-#ifndef UNTYPED_VECTOR_FN
-#define UNTYPED_VECTOR_FN
-#define Vector(TYPE)                        _##TYPE##_vector_t
-#define vector_new(TYPE)                    (_new_##TYPE##_vector())
-#define vector_get(vec, index)              ((vec)->_fns->get((vec), (index)))
-#define vector_set(vec, index, val)         ((vec)->_fns->set((vec), (index), (val)))
-#define vector_remove(vec, index)           ((vec)->_fns->remove((vec), (index)))
-#define vector_pop_back(vec)                ((vec)->_fns->pop_back((vec)))
-#define vector_push_back(vec, val)          ((vec)->_fns->push_back((vec), (val)))
-#define vector_resize(vec, size)            ((vec)->_fns->resize((vec), (size), 0))
-#define vector_resize_val(vec, size, val)   ((vec)->_fns->resize((vec), (size), (val)))             
-#define vector_size(vec)                    ((vec)->_fns->size((vec)))
-#define vector_free(vec)                    ((vec)->_fns->free((vec)))
-#endif
 
 #endif

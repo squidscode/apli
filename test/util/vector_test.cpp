@@ -64,11 +64,12 @@ int main() {
     assertTrue(vector_size(vi) == 2);
     assertTrue(vector_get(vi, 0) == 5);
     assertTrue(vector_get(vi, 1) == 7);
-    // exit(0);
+    vector_free(vi);
 
-    Vector(int) *v = vector_new(int);
+    Vector(int) *v;
     std::vector<int> v_test;
     for(int i = 0; i < NUM_TESTS; ++i) {
+        v  = vector_new(int);
         std::vector<int> pp_vec;
         std::vector<int> prev_vector;
         for(int j = 0; j < NUM_OPERATIONS; ++j) {
@@ -143,6 +144,8 @@ int main() {
             dbif(vector_get(v, ind) == v_test[ind]);
         }
         vector_free(v);
-        v = vector_new(int); v_test.clear();
+        v_test.clear();
     }
+
+    teardown_tests();
 }

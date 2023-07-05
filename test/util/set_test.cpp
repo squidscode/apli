@@ -1,6 +1,7 @@
 #include "../testlib/testlib.c"
 #include "../../src/util/set.h"
 
+define_list(int);
 define_set(int);
 
 int main() {
@@ -33,6 +34,16 @@ int main() {
     set_insert(set2, 13);
     assertTrue(0 == set_equals(set1, set2));
 
+    List(int) *set1_list = set_get_list(set1);
+    Iterator(int) *iter = get_iterator(set1_list);
+    while(iter != NULL) {
+        assertTrue(set_count(set2, iter_val(iter))); // all values in set1 are in set2!
+        iter = iter_next(iter);
+    }
+    list_free(set1_list);
+
     set_free(set1);
     set_free(set2);
+
+    teardown_tests();
 }
