@@ -22,6 +22,7 @@
  *   set_count(set, value)             -> size_t
  *   set_size(set)                     -> size_t
  *   set_equals(set1, set2)            -> size_t
+ *   set_union(set1, set2)             -> Set(type)*       [ set1 = set1 U set2 ;; returns set1 ]
  *   set_free(set)                     -> void
  *   set_get_list(set)                 -> List(type)*
  */
@@ -37,19 +38,21 @@
 #define set_count(set, value)                       ((set)->fns->count((set), (value)))
 #define set_size(set)                               ((set)->fns->size((set)))
 #define set_equals(set1, set2)                      ((set1)->fns->equals((set1), (set2)))
+#define set_union(set1, set2)                       ((set1)->fns->_union((set1), (set2)))
 #define set_free(set)                               ((set)->fns->destroy((set)))
 #define set_get_list(set)                           ((set)->fns->get_element_list((set)))
 #endif
 
 #define define_set_hash(type) \
     size_t _##type##_set_collection_hash(_##type##_set_t *set) { \
+        size_t buckets_size = vector_size(set->buckets); \
         size_t hash_total = 0; \
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
-            _##type##_set_match_list_t bucket = vector_get(set2->buckets, ind); \
+            _##type##_set_match_list_t bucket = vector_get(set->buckets, ind); \
             if(bucket == NULL || list_size(bucket) == 0) continue; \
             Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
             while(iter != NULL) { \
-                hash_total ^= _default_##type##_set_hash_(iter_val(iter)); \
+                hash_total ^= iter_val(iter).hash; \
                 iter = iter_next(iter); \
             } \
         } \
@@ -57,7 +60,9 @@
     }
 
 #define define_set(type) \
-    struct _##type##_set_; \
+    typedef struct _##type##_set_ _##type##_set_t; \
+    _##type##_set_t* _##type##_new_set(); \
+    \
     /* Virtual function table for dynamic dispatch (polymorphism) */ \
     typedef struct _##type##_set_fns_ { \
         void (*insert)(struct _##type##_set_*, type); \
@@ -66,6 +71,7 @@
         size_t (*size)(struct _##type##_set_*); \
         size_t (*equals)(struct _##type##_set_*, struct _##type##_set_*); \
         List(type)* (*get_element_list)(struct _##type##_set_*); \
+        struct _##type##_set_* (*_union)(struct _##type##_set_*, struct _##type##_set_*); \
         void (*destroy)(struct _##type##_set_*); \
     } _##type##_set_fns_t; \
     \
@@ -214,6 +220,16 @@
             && _##type##_set_contains_all_(set2, set1); \
     } \
     \
+    _##type##_set_t* _##type##_set_union_(_##type##_set_t *set1, _##type##_set_t *set2) { \
+        List(type) *l2 = set_get_list(set2); \
+        while(0 < list_size(l2)) { \
+            set_insert(set1, list_get_front(l2)); \
+            list_pop_front(l2); \
+        } \
+        list_free(l2); \
+        return set1; \
+    } \
+    \
     void _##type##_set_free_(_##type##_set_t *set) { \
         size_t buckets_size = vector_size(set->buckets); \
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
@@ -247,6 +263,7 @@
         &_##type##_set_size_, \
         &_##type##_set_equals_, \
         &_##type##_set_get_element_list, \
+        &_##type##_set_union_, \
         &_##type##_set_free_ \
     }; \
     \

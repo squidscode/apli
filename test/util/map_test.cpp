@@ -116,8 +116,8 @@ int main() {
 
     // Define a the str_map with the correct hash and key functions
     str_map = map_new(ch_buf, int);
-    set_map_hash(str_map, &ch_buf_hash);
-    set_map_key_eq(str_map, &ch_buf_eq);
+    map_set_hash(str_map, &ch_buf_hash);
+    map_set_key_eq(str_map, &ch_buf_eq);
     strcpy(ch1.buf, "one");
     map_insert(str_map, ch1, 10);
     assertTrue(map_count(str_map, ch1) == 1);
@@ -136,8 +136,8 @@ int main() {
     map_free(str_map);
 
     Map(str, str) *map3 = map_new(str, str);
-    set_map_hash(map3, &str_hash);
-    set_map_key_eq(map3, &str_eq);
+    map_set_hash(map3, &str_hash);
+    map_set_key_eq(map3, &str_eq);
     map_insert(map3, "A", "1");
     map_insert(map3, "C", "3");
     map_insert(map3, "D", "4");

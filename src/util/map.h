@@ -30,9 +30,10 @@
 #ifndef UNTYPED_MAP_FN
 #define UNTYPED_MAP_FN
 #define Map(key_type, value_type)                   _##key_type##_##value_type##_map_t
+#define MapMatch(key_type, value_type)              _##key_type##_##value_type##_map_match_t
 #define map_new(key_type, value_type)               (_##key_type##_##value_type##_new_map())
-#define set_map_key_eq(map, fn_ref)                 ((map)->key_eq = (fn_ref))
-#define set_map_hash(map, fn_ref)                   ((map)->hash = (fn_ref))
+#define map_set_key_eq(map, fn_ref)                 ((map)->key_eq = (fn_ref))
+#define map_set_hash(map, fn_ref)                   ((map)->hash = (fn_ref))
 #define map_insert(map, key, value)                 ((map)->fns->insert((map), (key), (value)))
 #define map_at(map, key)                            ((map)->fns->at((map), (key)))
 #define map_erase(map, key)                         ((map)->fns->erase((map), (key)))

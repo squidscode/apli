@@ -27,18 +27,18 @@
 
 #ifndef UNTYPED_NFA_FNS
 #define UNTYPED_NFA_FNS
-#define Nfa(state_type, transition_type)
-#define nfa_new(state_type, transition_type, start_state)
-#define nfa_add_transition(nfa, from, transition, to)
-#define nfa_add_epsilon_transition(nfa, from, to)
-#define nfa_add_alphabet_transition(nfa, from, to)
-#define nfa_remove_transition(nfa, from, transition)
-#define nfa_remove_epsilon_transition(nfa, from, to)
-#define nfa_remove_alphabet_transition(nfa, from, to)
-#define nfa_add_accept_state(nfa, state)
-#define nfa_remove_accept_state(nfa, state)
-#define nfa_free(nfa)
-#define nfa_to_dfa(nfa)
+#define Nfa(state_type, transition_type)                        _##state_type##_##transition_type##_nfa_t
+#define nfa_new(state_type, transition_type, start_state)       (_##state_type##_##transition_type##_nfa_new(start_state))
+#define nfa_add_transition(nfa, from, transition, to)           ((nfa)->fns->add_transition((nfa), (from), (transition), (to)))
+#define nfa_add_epsilon_transition(nfa, from, to)               ((nfa)->fns->add_epsilon_transition((nfa), (from), (to)))
+#define nfa_add_alphabet_transition(nfa, from, to)              ((nfa)->fns->add_alphabet_transition((nfa), (from), (to)))
+#define nfa_remove_transition(nfa, from, transition)            ((nfa)->fns->remove_transition((nfa), (from), (transition), (to)))
+#define nfa_remove_epsilon_transition(nfa, from, to)            ((nfa)->fns->remove_epsilon_transition((nfa), (from), (to)))
+#define nfa_remove_alphabet_transition(nfa, from, to)           ((nfa)->fns->remove_alphabet_transition((nfa), (from), (to)))
+#define nfa_add_accept_state(nfa, state)                        ((nfa)->fns->add_accept_state((nfa), (state)))
+#define nfa_remove_accept_state(nfa, state)                     ((nfa)->fns->remove_accept_state((nfa), (state)))
+#define nfa_to_dfa(nfa, alphabet)                               ((nfa)->fns->nfa_to_dfa((nfa), (alphabet)))
+#define nfa_free(nfa)                                           ((nfa)->fns->destroy((nfa)))
 #endif
 
 /**
@@ -51,10 +51,12 @@
  *       ERS_1 contains state_1 AND ERS_2 contains state_2, and 
  *       iff state_i in ERS_1 and state_i -----transition----> state_j exists, then state_j is
  *       in ERS_2.
+ *     ** Run DFS from ERS(root) to construct this! **
  * 
  */
 
 typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
+// TODO refactor iterator to list mutation.
 
 #define define_nfa_transition_type(st, tt) \
     struct _##tt##_nfa_transition_ { \
@@ -62,9 +64,12 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         tt val; \
     }; \
     typedef struct _##tt##_nfa_transition_ _##tt##_nfa_transition_t; \
+    typedef Set(st)* st##_set_ptr_t; \
     \
-    define_map(_##tt##_nfa_transition_t, st); \
-    typedef Map(_##tt##_nfa_transition_t, st)* _##st##_##tt##_nfa_transition_map_t; \
+    define_list(_##tt##_nfa_transition_t); \
+    define_set(_##tt##_nfa_transition_t); \
+    define_map(_##tt##_nfa_transition_t, st##_set_ptr_t); \
+    typedef Map(_##tt##_nfa_transition_t, st##_set_ptr_t)* _##st##_##tt##_nfa_transition_map_t; \
     size_t _##tt##_nfa_transition_equals(_##tt##_nfa_transition_t t1, _##tt##_nfa_transition_t t2) { \
         return 0; \
     }
@@ -73,9 +78,9 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
 #define init_nfa(st, tt) \
     define_list(st); \
     define_set(st); \
+    define_set_hash(st); \
     define_list(tt); \
     define_nfa_transition_type(st, tt); \
-    typedef Set(st)* st##_set_ptr_t; \
     define_list(st##_set_ptr_t); \
     define_map(st, _##st##_##tt##_nfa_transition_map_t); \
     define_map(st, st##_set_ptr_t); \
@@ -95,7 +100,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         void (*add_accept_state)(struct _##st##_##tt##_nfa_*, st); \
         size_t (*remove_accept_state)(struct _##st##_##tt##_nfa_*, st); \
         Dfa(st##_set_ptr_t, tt)* (*nfa_to_dfa)(struct _##st##_##tt##_nfa_*, Set(tt)*); \
-        void (*free)(struct _##st##_##tt##_nfa_*); \
+        void (*destroy)(struct _##st##_##tt##_nfa_*); \
     }; \
     \
     struct _##st##_##tt##_nfa_ { \
@@ -118,10 +123,12 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     \
     /* Adds a new set to the transition map at the transition if it doesn't exist */ \
     void _##st##_##tt##_nfa_add_transition_node(Map(st, _##st##_##tt##_nfa_transition_map_t) *transition_map, \
-        st state) { \
+        st state, _##tt##_nfa_transition_t transition) { \
         if(0 == map_count(transition_map, state)) { \
-            map_insert(transition_map, state, map_new(_##tt##_nfa_transition_t, st)); \
-            set_map_key_eq(map_at(transition_map, state), &_##tt##_nfa_transition_equals); \
+            map_insert(transition_map, state, map_new(_##tt##_nfa_transition_t, st##_set_ptr_t)); \
+        } \
+        if(0 == map_count(map_at(transition_map, state), transition)) { \
+            map_insert(map_at(transition_map, state), transition, set_new(st)); \
         } \
     } \
     \
@@ -129,9 +136,9 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     void _##st##_##tt##_nfa_add_transition(_##st##_##tt##_nfa_t *nfa, st from, tt transition, st to) { \
         set_insert(nfa->all_states, from); set_insert(nfa->all_states, to); \
         nfa->tmp_transition.transition_type = NONE; \
-        nfa->tmp_transition.transition.val = transition; \
-        _##st##_##tt##_nfa_add_transition_node(nfa->transition_map, from); \
-        map_insert(map_at(nfa->transition_map, nfa->tmp_transition), nfa->tmp_transition, to); \
+        nfa->tmp_transition.val = transition; \
+        _##st##_##tt##_nfa_add_transition_node(nfa->transition_map, from, nfa->tmp_transition); \
+        set_insert(map_at(map_at(nfa->transition_map, from), nfa->tmp_transition), to); \
     } \
     \
     /* Adds an epsilon transition to the nfa. */ \
@@ -146,18 +153,19 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     void _##st##_##tt##_nfa_add_alphabet_transition(_##st##_##tt##_nfa_t *nfa, st from, st to) { \
         set_insert(nfa->all_states, from); set_insert(nfa->all_states, to); \
         nfa->tmp_all_transition.transition_type = ALL; \
-        _##st##_##tt##_nfa_add_transition_node(nfa->transition_map, nfa->tmp_all_transition); \
-        map_insert(map_at(nfa->transition_map, nfa->tmp_all_transition), nfa->tmp_all_transition, to); \
+        _##st##_##tt##_nfa_add_transition_node(nfa->transition_map, from, nfa->tmp_all_transition); \
+        set_insert(map_at(map_at(nfa->transition_map, from), nfa->tmp_all_transition), to); \
     } \
     \
     /* Removes the transition from the transition map. */ \
     size_t _##st##_##tt##_nfa_remove_transition(_##st##_##tt##_nfa_t *nfa, st from, tt transition, st to) { \
-        nfa->tmp_transition.state = from; nfa->tmp_transition.transition.transition_type = NONE; \
-        nfa->tmp_transition.transition.val = transition; \
-        if(0 == map_count(nfa->transition_map, nfa->tmp_transition)) \
+        nfa->tmp_transition.transition_type = NONE; \
+        nfa->tmp_transition.val = transition; \
+        if(0 == map_count(nfa->transition_map, from) \
+            || 0 == map_count(map_at(nfa->transition_map, from), nfa->tmp_transition)) \
             return 0; \
         else \
-            return set_erase(map_at(nfa->transition_map, nfa->tmp_transition), to); \
+            return set_erase(map_at(map_at(nfa->transition_map, from), nfa->tmp_transition), to); \
     } \
     \
     size_t _##st##_##tt##_nfa_remove_epsilon_transition(_##st##_##tt##_nfa_t *nfa, st from, st to) { \
@@ -168,11 +176,12 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     } \
     \
     size_t _##st##_##tt##_nfa_remove_alphabet_transition(_##st##_##tt##_nfa_t *nfa, st from, st to) { \
-        nfa->tmp_all_transition.state = from; nfa->tmp_all_transition.transition.transition_type = ALL; \
-        if(0 == map_count(nfa->transition_map, nfa->tmp_all_transition)) \
+        nfa->tmp_all_transition.transition_type = ALL; \
+        if(0 == map_count(nfa->transition_map, from) \
+            || 0 == map_count(map_at(nfa->transition_map, from), nfa->tmp_transition)) \
             return 0; \
         else \
-            return set_erase(map_at(nfa->transition_map, nfa->tmp_all_transition), to); \
+            return set_erase(map_at(map_at(nfa->transition_map, from), nfa->tmp_all_transition), to); \
     } \
     \
     void _##st##_##tt##_nfa_add_accept_state(_##st##_##tt##_nfa_t *nfa, st state) { \
@@ -189,13 +198,16 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         Iterator(st) *iterator_of_states = get_iterator(list_of_states); \
         while(iterator_of_states != NULL) { \
             st root = iter_val(iterator_of_states); \
-            Set(st) *seen = set_new(st); set_insert(seen, root); /* The epsilon_reachable_map owns this set */ \
+            Set(st) *seen = set_new(st); /* The epsilon_reachable_map owns this set */ \
             List(st) *stk = list_new(st); list_push_back(stk, root); \
             while(0 < list_size(stk)) { \
-                st nxt = list_get_first(stk); list_pop_back(stk); \
+                st nxt = list_get_first(stk); list_pop_front(stk); \
+                if(0 == set_count(seen, nxt)) \
+                    set_insert(seen, nxt); \
+                else \
+                    continue; \
+                if(0 == map_count(nfa->epsilon_map, nxt)) continue; \
                 Set(st) *set_of_adj = map_at(nfa->epsilon_map, nxt); \
-                if(0 == set_count(seen, list_get_first(stk))) set_insert(seen, list_get_first(stk)); \
-                else                                          continue; \
                 List(st) *list_of_adj = set_get_list(set_of_adj); \
                 Iterator(st) *iter_of_adj = get_iterator(list_of_adj); \
                 while(NULL != iter_of_adj) { \
@@ -211,16 +223,167 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         list_free(list_of_states); \
     } \
     \
-    /* Converts an NFA into a DFA using the powerset algorithm. */ \
+    void _##st##_##tt##_add_all_transitions_to_nfa(_##st##_##tt##_nfa_t *nfa, Set(tt) *alphabet_set, st from, Set(st) *to) { \
+        List(st) *to_states = set_get_list(to); \
+        List(tt) *alphabet_transitions = set_get_list(alphabet_set); \
+        while(0 < list_size(to_states)) { \
+            Iterator(tt) *alphabet_iter = get_iterator(alphabet_transitions); \
+            while(NULL != alphabet_iter) { \
+                nfa_add_transition(nfa, from, iter_val(alphabet_iter), list_get_front(to_states)); \
+                alphabet_iter = iter_next(alphabet_iter); \
+            } \
+            list_pop_front(to_states); \
+        } \
+        list_free(to_states); \
+        list_free(alphabet_transitions); \
+    } \
+    \
+    void _##st##_##tt##_replace_all_transitions_with_alphabet_set_transitions(_##st##_##tt##_nfa_t *nfa, Set(tt) *alphabet_set) { \
+        List(_##st##__##st##_##tt##_nfa_transition_map_t_map_match_t) *state_transition_matches = map_get_list(nfa->transition_map); \
+        while(0 < list_size(state_transition_matches)) { \
+            List(__##tt##_nfa_transition_t_##st##_set_ptr_t_map_match_t) *transition_state_matches = map_get_list(map_at(nfa->transition_map, \
+                list_get_front(state_transition_matches).key)); \
+            while(0 < list_size(transition_state_matches)) { \
+                if(ALL == list_get_front(transition_state_matches).key.transition_type) \
+                    _##st##_##tt##_add_all_transitions_to_nfa(nfa, alphabet_set, list_get_front(state_transition_matches).key, \
+                        list_get_front(transition_state_matches).value); \
+                list_pop_front(transition_state_matches); \
+            } \
+            list_free(transition_state_matches); \
+            list_pop_front(state_transition_matches); \
+        } \
+        list_free(state_transition_matches); \
+    } \
+    \
+    Set(st)* _##st##_##tt##_compute_transition_set(_##st##_##tt##_nfa_t *nfa, Map(st, st##_set_ptr_t) *epsilon_reachable_map, \
+        Set(st) *next_set, _##tt##_nfa_transition_t transition) { \
+        Set(st) *transition_set = set_new(st); \
+        List(st) *state_list = set_get_list(next_set); \
+        while(0 < list_size(state_list)) { \
+            st current_state = list_get_front(state_list); \
+            if(0 == map_count(nfa->transition_map, current_state) \
+                || 0 == map_count(map_at(nfa->transition_map, current_state), transition)) { \
+                list_pop_front(state_list); \
+                continue; \
+            } \
+            Set(st) *direct_transition_states = map_at(map_at(nfa->transition_map, current_state), transition); \
+            List(st) *dts_list = set_get_list(direct_transition_states); \
+            while(0 < list_size(dts_list)) { \
+                set_union(transition_set, map_at(epsilon_reachable_map, list_get_front(dts_list))); \
+                list_pop_front(dts_list); \
+            } \
+            list_free(dts_list); \
+            list_pop_front(state_list); \
+        } \
+        list_free(state_list); \
+        return transition_set; \
+    } \
+    \
+    void _##st##_##tt##_load_dfa_with_transition(Dfa(st##_set_ptr_t, tt) *new_dfa, \
+        Set(st) *from, _##tt##_nfa_transition_t transition, Set(st) *to) { \
+        if(NONE == transition.transition_type) { \
+            dfa_add_transition(new_dfa, from, transition.val, to); \
+        } \
+    } \
+    \
+    void _##st##_##tt##_update_accept_status_in_dfa(Dfa(st##_set_ptr_t, tt) *new_dfa, _##st##_##tt##_nfa_t *nfa, \
+        Set(st) *states) { \
+        List(st) *list_of_states = set_get_list(states); \
+        while(0 < list_size(list_of_states)) { \
+            if(1 == set_count(nfa->accept_states, list_get_front(list_of_states))) { \
+                dfa_add_accept_state(new_dfa, states); \
+                return; \
+            } \
+            list_pop_front(list_of_states); \
+        } \
+        list_free(list_of_states); \
+    } \
+    \
+    void _##st##_##tt##_process_next_state_set(Dfa(st##_set_ptr_t, tt) *new_dfa, \
+        _##st##_##tt##_nfa_t *nfa, Map(st, st##_set_ptr_t) *epsilon_reachable_map, List(st##_set_ptr_t)* state_queue, \
+        Set(st) *next_set) { \
+        List(st) *state_list = set_get_list(next_set); \
+        _##st##_##tt##_update_accept_status_in_dfa(new_dfa, nfa, next_set); \
+        Set(_##tt##_nfa_transition_t) *seen_transitions = set_new(_##tt##_nfa_transition_t); \
+        while(0 < list_size(state_list)) { \
+            if(0 == map_count(nfa->transition_map, list_get_front(state_list))) { \
+                list_pop_front(state_list); \
+                continue; \
+            } \
+            List(__##tt##_nfa_transition_t_##st##_set_ptr_t_map_match_t) *transition_list \
+                = map_get_list(map_at(nfa->transition_map, list_get_front(state_list))); \
+            while(0 < list_size(transition_list)) { \
+                if(1 == set_count(seen_transitions, list_get_front(transition_list).key)) { \
+                    list_pop_front(transition_list); \
+                    continue; \
+                } \
+                set_insert(seen_transitions, list_get_front(transition_list).key); \
+                Set(st) *transition_state = _##st##_##tt##_compute_transition_set(nfa, \
+                    epsilon_reachable_map, next_set, list_get_front(transition_list).key); \
+                _##st##_##tt##_load_dfa_with_transition(new_dfa, next_set, list_get_front(transition_list).key, \
+                    transition_state); \
+                _##st##_##tt##_update_accept_status_in_dfa(new_dfa, nfa, transition_state); \
+                list_push_back(state_queue, transition_state); \
+                list_pop_front(transition_list); \
+            } \
+            list_pop_front(state_list); \
+            list_free(transition_list); \
+        } \
+        list_free(state_list); \
+    } \
+    \
+    void _##st##_##tt##_construct_dfa_with_transitions_and_epsilon_reachable_map(Dfa(st##_set_ptr_t, tt) *new_dfa, \
+        _##st##_##tt##_nfa_t *nfa, Map(st, st##_set_ptr_t) *epsilon_reachable_map) { \
+        List(st##_set_ptr_t) *state_queue = list_new(st##_set_ptr_t); \
+        Set(st##_set_ptr_t) *seen = set_new(st##_set_ptr_t); \
+        set_set_hash(seen, &_##st##_set_collection_hash); \
+        set_set_value_equals(seen, &_##st##_set_equals_); \
+        list_push_back(state_queue, map_at(epsilon_reachable_map, nfa->begin_state)); \
+        while(0 < list_size(state_queue)) { \
+            Set(st) *next_set = list_get_front(state_queue); \
+            if(0 == set_count(seen, next_set)) { \
+                _##st##_##tt##_process_next_state_set(new_dfa, nfa, epsilon_reachable_map, state_queue, next_set); \
+                set_insert(seen, next_set); \
+            } \
+            list_pop_front(state_queue); \
+        } \
+        list_free(state_queue); \
+        set_free(seen); \
+    } \
+    \
+    /* Hash and equals overrides for the transition. */ \
+    size_t _##st##_##tt##_transition_hash_fn(_##st##_set_ptr_t_##tt##_transition_t transition) { \
+        return _##st##_set_collection_hash(transition.state); \
+    } \
+    size_t _##st##_##tt##_transition_equals_fn(_##st##_set_ptr_t_##tt##_transition_t transition1, \
+        _##st##_set_ptr_t_##tt##_transition_t transition2) { \
+        return transition1.transition == transition2.transition \
+            && _##st##_set_equals_(transition1.state, transition2.state); \
+    } \
+    \
+    void _##st##_##tt##_override_dfa_tranisition_map_equals(Dfa(st##_set_ptr_t, tt) *new_dfa) {\
+        map_set_hash(new_dfa->transition_map, &_##st##_##tt##_transition_hash_fn); \
+        map_set_key_eq(new_dfa->transition_map, &_##st##_##tt##_transition_equals_fn); \
+        set_set_hash(new_dfa->accept_states, &_##st##_set_collection_hash); \
+        set_set_value_equals(new_dfa->accept_states, &_##st##_set_equals_); \
+    } \
+    \
+    /* Converts an NFA into a DFA using the powerset algorithm. This mutates the current NFA, so this algorithm can \
+       only be called *once*. */ \
     Dfa(st##_set_ptr_t, tt)* _##st##_##tt##_nfa_to_dfa(_##st##_##tt##_nfa_t *nfa, Set(tt) *alphabet_set) { \
         Map(st, st##_set_ptr_t) *epsilon_reachable_map = map_new(st, st##_set_ptr_t); \
         _##st##_##tt##_fill_epsilon_reachable_map(nfa, epsilon_reachable_map); \
+        _##st##_##tt##_replace_all_transitions_with_alphabet_set_transitions(nfa, alphabet_set); \
         Dfa(st##_set_ptr_t, tt) *new_dfa = dfa_new(st##_set_ptr_t, tt, map_at(epsilon_reachable_map, nfa->begin_state)); \
+        _##st##_##tt##_override_dfa_tranisition_map_equals(new_dfa); \
+        _##st##_##tt##_construct_dfa_with_transitions_and_epsilon_reachable_map(new_dfa, nfa, epsilon_reachable_map); \
         map_free(epsilon_reachable_map); \
         nfa_free(nfa); \
+        return new_dfa; \
     } \
     \
     void _##st##_##tt##_nfa_free(_##st##_##tt##_nfa_t *nfa) { \
+        /* TODO this attempt at freeing the nfa is INCOMPLETE! */ \
         map_free(nfa->transition_map); \
         set_free(nfa->accept_states); \
         map_free(nfa->epsilon_map); \
@@ -237,8 +400,9 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     \
     _##st##_##tt##_nfa_t* _##st##_##tt##_nfa_new(st begin_state) { \
         _##st##_##tt##_nfa_t* new_nfa = (_##st##_##tt##_nfa_t*) malloc(sizeof(_##st##_##tt##_nfa_t)); \
-        new_nfa->transition_map = map_new(_##st##_##tt##_nfa_transition_t, st##_set_ptr_t); \
+        new_nfa->transition_map = map_new(st, _##st##_##tt##_nfa_transition_map_t); \
         new_nfa->begin_state = begin_state; \
+        new_nfa->all_states = set_new(st); \
         new_nfa->accept_states = set_new(st); \
         new_nfa->epsilon_map = map_new(st, st##_set_ptr_t); \
         map_insert(new_nfa->epsilon_map, begin_state, set_new(st)); \
