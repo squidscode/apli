@@ -69,7 +69,7 @@ size_t malloc_call_counter = 0;
 
 // New functions:
 void* my_malloc(size_t size, const char* file, int line_number) {
-    dprintf("malloc(%lu) called in file %s at line %i\n", size, file, line_number);
+    // dprintf("malloc(%lu) called in file %s at line %i\n", size, file, line_number);
     if(malloc_history == NULL) malloc_history = map_new(void_ptr, malloc_snapshot_t);
     void* allocation_pointer = malloc(size);
     malloc_snapshot_t snapshot = {++malloc_call_counter, size, allocation_pointer};
@@ -78,7 +78,7 @@ void* my_malloc(size_t size, const char* file, int line_number) {
 }
 
 void my_free(void* ptr, const char* file, int line_number) {
-    dprintf("free(%p) called in file %s at line %i\n", ptr, file, line_number);
+    // dprintf("free(%p) called in file %s at line %i\n", ptr, file, line_number);
     if(malloc_history == NULL)
         assert(0 == "Free called before first malloc.");
     if(0 == map_count(malloc_history, ptr))
@@ -94,12 +94,16 @@ void print_memory_leak_results() {
         return;
     }
     Iterator(_void_ptr_malloc_snapshot_t_map_match_t) *history_iter = get_iterator(history_list);
+    size_t leaked_bytes_counter = 0;
     while(history_iter != NULL) {
         printf(RED "[MEMORY CHECK]" RESET " #%lu malloc(%lu) @%p was not freed.\n" RESET, 
             iter_val(history_iter).value.counter, iter_val(history_iter).value.allocation_size,
             iter_val(history_iter).value.allocation_pointer);
+        leaked_bytes_counter += iter_val(history_iter).value.allocation_size;
         history_iter = iter_next(history_iter);
     }
+    printf(RED "[MEMORY CHECK]" RESET " %lu malloc calls were un-freed.\n", map_size(malloc_history));
+    printf(RED "[MEMORY CHECK]" RESET " %lu bytes were leaked.\n", leaked_bytes_counter);
     list_free(history_list);
 }
 

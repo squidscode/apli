@@ -27,8 +27,6 @@
  *   map_free(map)                          -> void
  */
 
-#ifndef UNTYPED_MAP_FN
-#define UNTYPED_MAP_FN
 #define Map(key_type, value_type)                   _##key_type##_##value_type##_map_t
 #define MapMatch(key_type, value_type)              _##key_type##_##value_type##_map_match_t
 #define map_new(key_type, value_type)               (_##key_type##_##value_type##_new_map())
@@ -41,7 +39,6 @@
 #define map_size(map)                               ((map)->fns->size((map)))
 #define map_free(map)                               ((map)->fns->destroy((map)))
 #define map_get_list(map)                           ((map)->fns->get_list((map)))
-#endif
 
 #define define_map(key_type, value_type) \
     /* A `map_match` holds information about a single (key, value) pair. */ \

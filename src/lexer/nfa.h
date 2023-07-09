@@ -25,8 +25,6 @@
  *       ^^^ automatically frees the nfa ^^^
  */
 
-#ifndef UNTYPED_NFA_FNS
-#define UNTYPED_NFA_FNS
 #define Nfa(state_type, transition_type)                        _##state_type##_##transition_type##_nfa_t
 #define nfa_new(state_type, transition_type, start_state)       (_##state_type##_##transition_type##_nfa_new(start_state))
 #define nfa_add_transition(nfa, from, transition, to)           ((nfa)->fns->add_transition((nfa), (from), (transition), (to)))
@@ -39,7 +37,6 @@
 #define nfa_remove_accept_state(nfa, state)                     ((nfa)->fns->remove_accept_state((nfa), (state)))
 #define nfa_to_dfa(nfa, alphabet)                               ((nfa)->fns->nfa_to_dfa((nfa), (alphabet)))
 #define nfa_free(nfa)                                           ((nfa)->fns->destroy((nfa)))
-#endif
 
 /**
  * Powerset transformation algorithm:
@@ -51,7 +48,7 @@
  *       ERS_1 contains state_1 AND ERS_2 contains state_2, and 
  *       iff state_i in ERS_1 and state_i -----transition----> state_j exists, then state_j is
  *       in ERS_2.
- *     ** Run DFS from ERS(root) to construct this! **
+ *     ** Run DFS/BFS from ERS(root) to construct this! **
  * 
  */
 
@@ -74,7 +71,6 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         return 0; \
     }
 
-
 #define init_nfa(st, tt) \
     define_list(st); \
     define_set(st); \
@@ -84,6 +80,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     define_list(st##_set_ptr_t); \
     define_map(st, _##st##_##tt##_nfa_transition_map_t); \
     define_map(st, st##_set_ptr_t); \
+    init_dfa_types(st##_set_ptr_t, tt); \
     define_dfa(st##_set_ptr_t, tt); \
     define_set(tt)
 
@@ -111,6 +108,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         Set(st) *accept_states; \
         Set(st) *all_states; \
         Map(st, st##_set_ptr_t) *epsilon_map; \
+        List(st##_set_ptr_t) *free_state_set_list; \
         struct _##st##_##tt##_nfa_fns_ *fns; \
     }; \
     typedef struct _##st##_##tt##_nfa_ _##st##_##tt##_nfa_t; \
@@ -198,7 +196,8 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         Iterator(st) *iterator_of_states = get_iterator(list_of_states); \
         while(iterator_of_states != NULL) { \
             st root = iter_val(iterator_of_states); \
-            Set(st) *seen = set_new(st); /* The epsilon_reachable_map owns this set */ \
+            Set(st) *seen = set_new(st); \
+            list_push_back(nfa->free_state_set_list, seen); /* this set belongs to the nfa, and should be freed with the nfa. */ \
             List(st) *stk = list_new(st); list_push_back(stk, root); \
             while(0 < list_size(stk)) { \
                 st nxt = list_get_first(stk); list_pop_front(stk); \
@@ -258,6 +257,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     Set(st)* _##st##_##tt##_compute_transition_set(_##st##_##tt##_nfa_t *nfa, Map(st, st##_set_ptr_t) *epsilon_reachable_map, \
         Set(st) *next_set, _##tt##_nfa_transition_t transition) { \
         Set(st) *transition_set = set_new(st); \
+        list_push_back(nfa->free_state_set_list, transition_set); /* the nfa owns this set! */ \
         List(st) *state_list = set_get_list(next_set); \
         while(0 < list_size(state_list)) { \
             st current_state = list_get_front(state_list); \
@@ -282,6 +282,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     void _##st##_##tt##_load_dfa_with_transition(Dfa(st##_set_ptr_t, tt) *new_dfa, \
         Set(st) *from, _##tt##_nfa_transition_t transition, Set(st) *to) { \
         if(NONE == transition.transition_type) { \
+            construct_int_char_transition_string(from, transition.val, to); /* TODO delete this!! */ \
             dfa_add_transition(new_dfa, from, transition.val, to); \
         } \
     } \
@@ -292,6 +293,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         while(0 < list_size(list_of_states)) { \
             if(1 == set_count(nfa->accept_states, list_get_front(list_of_states))) { \
                 dfa_add_accept_state(new_dfa, states); \
+                list_free(list_of_states); \
                 return; \
             } \
             list_pop_front(list_of_states); \
@@ -329,6 +331,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
             list_pop_front(state_list); \
             list_free(transition_list); \
         } \
+        set_free(seen_transitions); \
         list_free(state_list); \
     } \
     \
@@ -378,15 +381,49 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         _##st##_##tt##_override_dfa_tranisition_map_equals(new_dfa); \
         _##st##_##tt##_construct_dfa_with_transitions_and_epsilon_reachable_map(new_dfa, nfa, epsilon_reachable_map); \
         map_free(epsilon_reachable_map); \
-        nfa_free(nfa); \
         return new_dfa; \
     } \
     \
     void _##st##_##tt##_nfa_free(_##st##_##tt##_nfa_t *nfa) { \
         /* TODO this attempt at freeing the nfa is INCOMPLETE! */ \
+        /* (1) Free the transition map */ \
+        List(_##st##__##st##_##tt##_nfa_transition_map_t_map_match_t) *state_transition_matches = map_get_list(nfa->transition_map); \
+        while(0 < list_size(state_transition_matches)) { \
+            List(__##tt##_nfa_transition_t_##st##_set_ptr_t_map_match_t) *transition_state_matches = map_get_list(map_at(nfa->transition_map, \
+                list_get_front(state_transition_matches).key)); \
+            while(0 < list_size(transition_state_matches)) { \
+                set_free(list_get_front(transition_state_matches).value); \
+                list_pop_front(transition_state_matches); \
+            } \
+            list_free(transition_state_matches); \
+            map_free(map_at(nfa->transition_map, list_get_front(state_transition_matches).key)); \
+            list_pop_front(state_transition_matches); \
+        } \
+        list_free(state_transition_matches); \
         map_free(nfa->transition_map); \
+        \
+        /* (2) Free the accept_states set */ \
         set_free(nfa->accept_states); \
+        \
+        /* (3) Free the all_states set */ \
+        set_free(nfa->all_states); \
+        \
+        /* (4) Free the epsilon_map map */ \
+        List(_##st##_##st##_set_ptr_t_map_match_t) *epsilon_transitions = map_get_list(nfa->epsilon_map); \
+        while(0 < list_size(epsilon_transitions)) { \
+            set_free(list_get_front(epsilon_transitions).value); \
+            list_pop_front(epsilon_transitions); \
+        } \
+        list_free(epsilon_transitions); \
         map_free(nfa->epsilon_map); \
+        \
+        while(0 < list_size(nfa->free_state_set_list)) { \
+            set_free(list_get_front(nfa->free_state_set_list)); \
+            list_pop_front(nfa->free_state_set_list); \
+        } \
+        list_free(nfa->free_state_set_list); \
+        \
+        /* (5) Free the original nfa */ \
         free(nfa); \
     } \
     \
@@ -405,6 +442,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         new_nfa->all_states = set_new(st); \
         new_nfa->accept_states = set_new(st); \
         new_nfa->epsilon_map = map_new(st, st##_set_ptr_t); \
+        new_nfa->free_state_set_list = list_new(st##_set_ptr_t); \
         map_insert(new_nfa->epsilon_map, begin_state, set_new(st)); \
         new_nfa->fns = &st##_##tt##_nfa_fns; \
         return new_nfa; \

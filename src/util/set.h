@@ -27,8 +27,6 @@
  *   set_get_list(set)                 -> List(type)*
  */
 
-#ifndef UNTYPED_SET_FN
-#define UNTYPED_SET_FN
 #define Set(type)                                    _##type##_set_t
 #define set_new(type)                               (_##type##_new_set())
 #define set_set_value_equals(set, fn_ref)           ((set)->value_equals = (fn_ref))
@@ -41,7 +39,6 @@
 #define set_union(set1, set2)                       ((set1)->fns->_union((set1), (set2)))
 #define set_free(set)                               ((set)->fns->destroy((set)))
 #define set_get_list(set)                           ((set)->fns->get_element_list((set)))
-#endif
 
 #define define_set_hash(type) \
     size_t _##type##_set_collection_hash(_##type##_set_t *set) { \

@@ -36,8 +36,6 @@
  *     - call(fdfa, const char*)          ->   size_t
  */
 
-#ifndef UNTYPED_DFA_FNS
-#define UNTYPED_DFA_FNS
 #define Dfa(st, tt)                                 _##st##_##tt##_dfa_t
 #define Fdfa(st, tt)                                _##st##_##tt##_fdfa_t
 #define dfa_run(dfa, iter)                          ((dfa)->fns->run((dfa), (iter)))
@@ -49,7 +47,6 @@
 #define dfa_to_fdfa(dfa)                            ((dfa)->fns->dfa_to_fdfa((dfa)))
 #define fdfa_free(fdfa)                             ((fdfa)->destroy((fdfa)))
 #define dfa_new(st, tt, begin_state)                (_##st##_##tt##_dfa_new(begin_state))
-#endif
 
 // Defines a transition.
 #define define_transition(state_type, transition_type) \
@@ -68,7 +65,6 @@
 
 // Defines a dfa with state_type (st) and transition_type (tt)
 #define define_dfa(st, tt) \
-    init_dfa_types(st, tt); \
     struct _##st##_##tt##_dfa_; \
     define_fdfa(st, tt); \
     \
@@ -142,6 +138,7 @@
     void _##st##_##tt##_dfa_free(_##st##_##tt##_dfa_t *dfa) { \
         map_free(dfa->transition_map); \
         set_free(dfa->accept_states); \
+        free(dfa); \
     } \
     \
     size_t _##st##_##tt##_fdfa_call(_##st##_##tt##_fdfa_t *fdfa, Iterator(tt) *iter) { \

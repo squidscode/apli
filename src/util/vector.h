@@ -3,8 +3,6 @@
 
 #include <stdlib.h>
 
-#ifndef UNTYPED_VECTOR_FN
-#define UNTYPED_VECTOR_FN
 #define Vector(TYPE)                        _##TYPE##_vector_t
 #define vector_new(TYPE)                    (_new_##TYPE##_vector())
 #define vector_get(vec, index)              ((vec)->_fns->get((vec), (index)))
@@ -16,7 +14,6 @@
 #define vector_resize_val(vec, size, val)   ((vec)->_fns->resize((vec), (size), (val)))             
 #define vector_size(vec)                    ((vec)->_fns->size((vec)))
 #define vector_free(vec)                    ((vec)->_fns->destroy((vec)))
-#endif
 
 #define define_vector(TYPE)                 \
     struct _##TYPE##_vector_;               \

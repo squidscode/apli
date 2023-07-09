@@ -4,8 +4,6 @@
 #include <stdlib.h>
 
 
-#ifndef UNTYPED_LIST_FN
-#define UNTYPED_LIST_FN
 #define List(TYPE)                  TYPE##_list_t
 #define Iterator(TYPE)              TYPE##_list_node_t
 #define get_iterator(list)          ((list)->_first)
@@ -24,7 +22,6 @@
 #define list_pop_front(list)        ((list)->_fns->_pop_front((list)))
 #define list_pop_back(list)         ((list)->_fns->_pop_back((list)))
 #define list_free(list)             ((list)->_fns->_free((list)))
-#endif
 
 #define define_list(TYPE)                       \
     struct _##TYPE##_list_;                     \

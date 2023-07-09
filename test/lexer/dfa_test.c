@@ -3,6 +3,7 @@
 
 define_list(int);
 define_list(char);
+init_dfa_types(int, char)
 define_dfa(int, char);
 
 List(char)* str_list = NULL;
@@ -83,6 +84,7 @@ int main() {
     assertTrue(0 == dfa_run(number_dfa, str_to_iter("")));
 
     dfa_free(number_dfa);
+    list_free(str_list);
 
     teardown_tests();
 }

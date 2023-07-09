@@ -1,39 +1,12 @@
 #include "../../src/lexer/nfa.h"
 #include "../testlib/testlib.c"
 
-
-
-
 init_nfa(int, char);
-
-const char* construct_int_char_transition_string(Set(int) *from, char transition, Set(int) *to) {
-    char *buf = (char*) malloc(50 * sizeof(char));
-    List(int) *from_l = set_get_list(from);
-    List(int) *to_l = set_get_list(to);
-    sprintf(buf, "{");
-    while(0 < list_size(from_l)) {
-        sprintf(buf, "%s%i, ", buf, list_get_first(from_l));
-        list_pop_front(from_l);
-    }
-    sprintf(buf, "%s}", buf);
-
-    sprintf(buf, "%s >> %c >> ", buf, transition);
-
-    sprintf(buf, "%s{", buf);
-    while(0 < list_size(to_l)) {
-        sprintf(buf, "%s%i, ", buf, list_get_first(to_l));
-        list_pop_front(to_l);
-    }
-    sprintf(buf, "%s}", buf);
-
-    return buf;
-}
-
 define_nfa(int, char);
-
 
 List(char)* str_list = NULL;
 Iterator(char)* str_to_iter(const char*);
+const char* construct_int_char_transition_string(Set(int) *from, char transition, Set(int) *to);
 
 int main() {
     Nfa(int, char) *nfa1 = nfa_new(int, char, 0);
@@ -49,6 +22,7 @@ int main() {
     __auto_type *dfa = nfa_to_dfa(nfa1, alphabet);
     assertTrue(1 == dfa_run(dfa, str_to_iter("1ewooeowp0110")));
     dfa_free(dfa);
+    nfa_free(nfa1);
 
     // The next to examples are from:
     // https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton
@@ -73,6 +47,7 @@ int main() {
     assertTrue(1 == dfa_run(dfa, str_to_iter("010001")));
     assertTrue(1 == dfa_run(dfa, str_to_iter("11101")));
     dfa_free(dfa);
+    nfa_free(nfa_example_1);
 
     // This nfa determines if the string contains an even number of 1s or 0s.
     Nfa(int, char) *nfa_example_2 = nfa_new(int, char, 0);
@@ -104,6 +79,14 @@ int main() {
     assertTrue(1 == dfa_run(dfa, str_to_iter("0111001")));
     assertTrue(1 == dfa_run(dfa, str_to_iter("0011")));
     assertTrue(1 == dfa_run(dfa, str_to_iter("0000001")));
+
+    set_free(alphabet);
+    dfa_free(dfa);
+    nfa_free(nfa_example_2);
+
+    list_free(str_list);
+
+    teardown_tests();
 }
 
 Iterator(char)* str_to_iter(const char* str) {
@@ -117,4 +100,27 @@ Iterator(char)* str_to_iter(const char* str) {
         list_push_back(str_list, str[i]);
     }
     return get_iterator(str_list);
+}
+
+const char* construct_int_char_transition_string(Set(int) *from, char transition, Set(int) *to) {
+    char *buf = (char*) malloc(50 * sizeof(char));
+    List(int) *from_l = set_get_list(from);
+    List(int) *to_l = set_get_list(to);
+    sprintf(buf, "{");
+    while(0 < list_size(from_l)) {
+        sprintf(buf, "%s%i, ", buf, list_get_first(from_l));
+        list_pop_front(from_l);
+    }
+    sprintf(buf, "%s}", buf);
+
+    sprintf(buf, "%s >> %c >> ", buf, transition);
+
+    sprintf(buf, "%s{", buf);
+    while(0 < list_size(to_l)) {
+        sprintf(buf, "%s%i, ", buf, list_get_first(to_l));
+        list_pop_front(to_l);
+    }
+    sprintf(buf, "%s}", buf);
+
+    return buf;
 }
