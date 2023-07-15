@@ -28,6 +28,7 @@
  *     - dfa_add_accept_state(dfa, ST)         ->   void
  *     - dfa_remove_accept_state(dfa, ST)      ->   size_t
  *     - dfa_free(dfa)                         ->   void
+ *     - dfa_compress(dfa)                     ->   Dfa(size_t, transition_type)
  *     - dfa_to_fdfa(dfa)                      ->   fdfa_t *
  *       ^^^^^^^^^^^^^^^^ locks the dfa
  * 
@@ -60,8 +61,7 @@
 #define init_dfa_types(st, tt) \
     /* Type definitions: */ \
     define_transition(st, tt); \
-    define_map(_##st##_##tt##_transition_t, st); \
-    define_set(st)
+    define_map(_##st##_##tt##_transition_t, st)
 
 // Defines a dfa with state_type (st) and transition_type (tt)
 #define define_dfa(st, tt) \
@@ -75,6 +75,7 @@
         size_t (*remove_transition)(struct _##st##_##tt##_dfa_*, st, tt); \
         void (*add_accept_state)(struct _##st##_##tt##_dfa_*, st); \
         size_t (*remove_accept_state)(struct _##st##_##tt##_dfa_*, st); \
+        struct _size_t_##tt##_dfa_* (*compress)(struct _##st##_##tt##_dfa_*); \
         void (*destroy)(struct _##st##_##tt##_dfa_*); \
         _##st##_##tt##_fdfa_t* (*dfa_to_fdfa)(struct _##st##_##tt##_dfa_*); \
     }; \
@@ -90,6 +91,7 @@
         _##st##_##tt##_dfa_fns_t *fns; \
     }; \
     typedef struct _##st##_##tt##_dfa_ _##st##_##tt##_dfa_t; \
+    _##st##_##tt##_dfa_t* _##st##_##tt##_dfa_new(st); \
     \
     /* Throws an assert error if the dfa is locked. */ \
     void _##st##_##tt##_assert_is_not_locked(_##st##_##tt##_dfa_t *dfa) { \
@@ -134,6 +136,10 @@
         _##st##_##tt##_assert_is_not_locked(dfa); \
         return set_erase(dfa->accept_states, state); \
     } \
+    Dfa(size_t, tt)* _##st##_##tt##_dfa_compress(struct _##st##_##tt##_dfa_ *dfa) { \
+        Dfa(size_t, tt)* new_dfa = dfa_new(size_t, tt, 0); \
+        assert(0 == "Not implemented yet!"); \
+    } \
     \
     void _##st##_##tt##_dfa_free(_##st##_##tt##_dfa_t *dfa) { \
         map_free(dfa->transition_map); \
@@ -162,8 +168,8 @@
     _##st##_##tt##_dfa_fns_t _##st##_##tt##_fns = { \
         &_##st##_##tt##_dfa_run, &_##st##_##tt##_dfa_add_transition, \
         &_##st##_##tt##_dfa_remove_transition, &_##st##_##tt##_dfa_add_accepting_state, \
-        &_##st##_##tt##_dfa_remove_accepting_state, &_##st##_##tt##_dfa_free, \
-        &_##st##_##tt##_dfa_to_fdfa \
+        &_##st##_##tt##_dfa_remove_accepting_state, &_##st##_##tt##_dfa_compress, \
+        &_##st##_##tt##_dfa_free, &_##st##_##tt##_dfa_to_fdfa \
     }; \
     \
     /* Returns a new dfa_t */ \
@@ -177,7 +183,7 @@
         return new_dfa; \
     } \
     
-    
+
 
 /**
  * An `fdfa_t' mimics a function closure (since the `call' function pointer takes, as an argument,

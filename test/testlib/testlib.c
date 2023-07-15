@@ -93,7 +93,7 @@ void print_memory_leak_results() {
         printf(GREEN "[MEMORY CHECK]" RESET " All memory was successfully freed.\n");
         return;
     }
-    Iterator(_void_ptr_malloc_snapshot_t_map_match_t) *history_iter = get_iterator(history_list);
+    Iterator(_void_ptr_malloc_snapshot_t_map_match_t) *history_iter = list_get_iterator(history_list);
     size_t leaked_bytes_counter = 0;
     while(history_iter != NULL) {
         printf(RED "[MEMORY CHECK]" RESET " #%lu malloc(%lu) @%p was not freed.\n" RESET, 

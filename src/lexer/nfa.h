@@ -30,7 +30,7 @@
 #define nfa_add_transition(nfa, from, transition, to)           ((nfa)->fns->add_transition((nfa), (from), (transition), (to)))
 #define nfa_add_epsilon_transition(nfa, from, to)               ((nfa)->fns->add_epsilon_transition((nfa), (from), (to)))
 #define nfa_add_alphabet_transition(nfa, from, to)              ((nfa)->fns->add_alphabet_transition((nfa), (from), (to)))
-#define nfa_remove_transition(nfa, from, transition)            ((nfa)->fns->remove_transition((nfa), (from), (transition), (to)))
+#define nfa_remove_transition(nfa, from, transition, to)        ((nfa)->fns->remove_transition((nfa), (from), (transition), (to)))
 #define nfa_remove_epsilon_transition(nfa, from, to)            ((nfa)->fns->remove_epsilon_transition((nfa), (from), (to)))
 #define nfa_remove_alphabet_transition(nfa, from, to)           ((nfa)->fns->remove_alphabet_transition((nfa), (from), (to)))
 #define nfa_add_accept_state(nfa, state)                        ((nfa)->fns->add_accept_state((nfa), (state)))
@@ -66,20 +66,16 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     define_list(_##tt##_nfa_transition_t); \
     define_set(_##tt##_nfa_transition_t); \
     define_map(_##tt##_nfa_transition_t, st##_set_ptr_t); \
-    typedef Map(_##tt##_nfa_transition_t, st##_set_ptr_t)* _##st##_##tt##_nfa_transition_map_t; \
-    size_t _##tt##_nfa_transition_equals(_##tt##_nfa_transition_t t1, _##tt##_nfa_transition_t t2) { \
-        return 0; \
-    }
+    typedef Map(_##tt##_nfa_transition_t, st##_set_ptr_t)* _##st##_##tt##_nfa_transition_map_t
 
 #define init_nfa(st, tt) \
-    define_list(st); \
     define_set(st); \
     define_set_hash(st); \
-    define_list(tt); \
     define_nfa_transition_type(st, tt); \
     define_list(st##_set_ptr_t); \
     define_map(st, _##st##_##tt##_nfa_transition_map_t); \
     define_map(st, st##_set_ptr_t); \
+    define_set(st##_set_ptr_t); \
     init_dfa_types(st##_set_ptr_t, tt); \
     define_dfa(st##_set_ptr_t, tt); \
     define_set(tt)
@@ -193,7 +189,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     /* Creates the ERS map */ \
     void _##st##_##tt##_fill_epsilon_reachable_map(_##st##_##tt##_nfa_t *nfa, Map(st, st##_set_ptr_t) *epsilon_reachable_map) { \
         List(st) *list_of_states = set_get_list(nfa->all_states); \
-        Iterator(st) *iterator_of_states = get_iterator(list_of_states); \
+        Iterator(st) *iterator_of_states = list_get_iterator(list_of_states); \
         while(iterator_of_states != NULL) { \
             st root = iter_val(iterator_of_states); \
             Set(st) *seen = set_new(st); \
@@ -208,7 +204,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
                 if(0 == map_count(nfa->epsilon_map, nxt)) continue; \
                 Set(st) *set_of_adj = map_at(nfa->epsilon_map, nxt); \
                 List(st) *list_of_adj = set_get_list(set_of_adj); \
-                Iterator(st) *iter_of_adj = get_iterator(list_of_adj); \
+                Iterator(st) *iter_of_adj = list_get_iterator(list_of_adj); \
                 while(NULL != iter_of_adj) { \
                     list_push_back(stk, iter_val(iter_of_adj)); \
                     iter_of_adj = iter_next(iter_of_adj); \
@@ -226,7 +222,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         List(st) *to_states = set_get_list(to); \
         List(tt) *alphabet_transitions = set_get_list(alphabet_set); \
         while(0 < list_size(to_states)) { \
-            Iterator(tt) *alphabet_iter = get_iterator(alphabet_transitions); \
+            Iterator(tt) *alphabet_iter = list_get_iterator(alphabet_transitions); \
             while(NULL != alphabet_iter) { \
                 nfa_add_transition(nfa, from, iter_val(alphabet_iter), list_get_front(to_states)); \
                 alphabet_iter = iter_next(alphabet_iter); \
@@ -282,7 +278,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     void _##st##_##tt##_load_dfa_with_transition(Dfa(st##_set_ptr_t, tt) *new_dfa, \
         Set(st) *from, _##tt##_nfa_transition_t transition, Set(st) *to) { \
         if(NONE == transition.transition_type) { \
-            construct_int_char_transition_string(from, transition.val, to); /* TODO delete this!! */ \
+            /* construct_int_char_transition_string(from, transition.val, to); TODO delete this!! */ \
             dfa_add_transition(new_dfa, from, transition.val, to); \
         } \
     } \

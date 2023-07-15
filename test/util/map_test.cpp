@@ -167,7 +167,7 @@ int main() {
     auto list_of_matches = map_get_list(char_to_ascii);
     assertTrue(26 * 2 == list_size(list_of_matches)); // check the size of the list
     std::set<char> ch_set;
-    auto iter = get_iterator(list_of_matches);
+    auto iter = list_get_iterator(list_of_matches);
     while(iter != NULL) {
         assertTrue(0 == ch_set.count(iter_val(iter).key));
         ch_set.insert(iter_val(iter).key);

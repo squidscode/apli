@@ -3,10 +3,17 @@
 
 #include <stdlib.h>
 
+/**
+ * Defines a deque with the given API
+ * 
+ * ----- Usage -----
+ * List(type) *list = list_new(type);
+ *  
+ */
 
 #define List(TYPE)                  TYPE##_list_t
 #define Iterator(TYPE)              TYPE##_list_node_t
-#define get_iterator(list)          ((list)->_first)
+#define list_get_iterator(list)          ((list)->_first)
 #define iter_has_next(iter)         ((iter)->_next != NULL)
 #define iter_next(iter)             ((iter)->_next)
 #define iter_val(iter)              ((iter)->_val)

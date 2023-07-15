@@ -148,7 +148,7 @@
         size_t mask = (vector_size(map->buckets) - 1); \
         size_t key_hash = map->hash(key); \
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
-        Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
+        Iterator(_##key_type##_##value_type##_map_match_t) *iter = list_get_iterator(bucket); \
         while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
             if(match.hash == key_hash && map->key_eq(match.key, key)) \
@@ -163,7 +163,7 @@
         size_t key_hash = map->hash(key); \
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         if(bucket == NULL || list_size(bucket) == 0) return 0; \
-        Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
+        Iterator(_##key_type##_##value_type##_map_match_t) *iter = list_get_iterator(bucket); \
         while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
             if(match.hash == key_hash && map->key_eq(match.key, key)) { \
@@ -181,7 +181,7 @@
         size_t key_hash = map->hash(key); \
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         if(bucket == NULL || list_size(bucket) == 0) return 0; \
-        Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
+        Iterator(_##key_type##_##value_type##_map_match_t) *iter = list_get_iterator(bucket); \
         while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
             if(match.hash == key_hash && map->key_eq(match.key, key)) \
@@ -202,7 +202,7 @@
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
             _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, ind); \
             if(bucket != NULL) { \
-                Iterator(_##key_type##_##value_type##_map_match_t) *iter = get_iterator(bucket); \
+                Iterator(_##key_type##_##value_type##_map_match_t) *iter = list_get_iterator(bucket); \
                 while(iter != NULL) { \
                     list_push_back(matches, iter_val(iter)); \
                     iter = iter_next(iter); \

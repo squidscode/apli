@@ -3,6 +3,11 @@
 
 define_list(int);
 define_list(char);
+define_list(size_t);
+define_set(size_t);
+define_set(int);
+init_dfa_types(size_t, char);
+define_dfa(size_t, char);
 init_dfa_types(int, char)
 define_dfa(int, char);
 
@@ -99,5 +104,5 @@ Iterator(char)* str_to_iter(const char* str) {
     for(size_t i = 0; i < size; ++i) {
         list_push_back(str_list, str[i]);
     }
-    return get_iterator(str_list);
+    return list_get_iterator(str_list);
 }

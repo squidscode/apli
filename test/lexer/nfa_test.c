@@ -1,12 +1,17 @@
 #include "../../src/lexer/nfa.h"
 #include "../testlib/testlib.c"
 
+define_list(size_t);
+define_list(char);
+define_list(int);
+define_set(size_t);
+init_dfa_types(size_t, char);
+define_dfa(size_t, char);
 init_nfa(int, char);
 define_nfa(int, char);
 
 List(char)* str_list = NULL;
 Iterator(char)* str_to_iter(const char*);
-const char* construct_int_char_transition_string(Set(int) *from, char transition, Set(int) *to);
 
 int main() {
     Nfa(int, char) *nfa1 = nfa_new(int, char, 0);
@@ -99,7 +104,7 @@ Iterator(char)* str_to_iter(const char* str) {
     for(size_t i = 0; i < size; ++i) {
         list_push_back(str_list, str[i]);
     }
-    return get_iterator(str_list);
+    return list_get_iterator(str_list);
 }
 
 const char* construct_int_char_transition_string(Set(int) *from, char transition, Set(int) *to) {

@@ -47,7 +47,7 @@
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
             _##type##_set_match_list_t bucket = vector_get(set->buckets, ind); \
             if(bucket == NULL || list_size(bucket) == 0) continue; \
-            Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
+            Iterator(_##type##_set_match_t) *iter = list_get_iterator(bucket); \
             while(iter != NULL) { \
                 hash_total ^= iter_val(iter).hash; \
                 iter = iter_next(iter); \
@@ -164,7 +164,7 @@
         size_t val_hash = set->hash(val); \
         _##type##_set_match_list_t bucket = vector_get(set->buckets, (val_hash & mask)); \
         if(bucket == NULL || list_size(bucket) == 0) return 0; \
-        Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
+        Iterator(_##type##_set_match_t) *iter = list_get_iterator(bucket); \
         while(iter != NULL) { \
             _##type##_set_match_t match = iter_val(iter); \
             if(match.hash == val_hash && set->value_equals(match.value, val)) { \
@@ -182,7 +182,7 @@
         size_t val_hash = set->hash(val); \
         _##type##_set_match_list_t bucket = vector_get(set->buckets, (val_hash & mask)); \
         if(bucket == NULL || list_size(bucket) == 0) return 0; \
-        Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
+        Iterator(_##type##_set_match_t) *iter = list_get_iterator(bucket); \
         while(iter != NULL) { \
             _##type##_set_match_t match = iter_val(iter); \
             if(match.hash == val_hash && set->value_equals(match.value, val)) \
@@ -201,7 +201,7 @@
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
             _##type##_set_match_list_t bucket = vector_get(set2->buckets, ind); \
             if(bucket == NULL || list_size(bucket) == 0) continue; \
-            Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
+            Iterator(_##type##_set_match_t) *iter = list_get_iterator(bucket); \
             while(iter != NULL) { \
                 _##type##_set_match_t match = iter_val(iter); \
                 if(0 == set_count(set1, match.value)) \
@@ -214,7 +214,7 @@
     \
     size_t _##type##_set_equals_(_##type##_set_t *set1, _##type##_set_t *set2) { \
         return _##type##_set_contains_all_(set1, set2) \
-            && _##type##_set_contains_all_(set2, set1); \
+            && set_size(set1) == set_size(set2); \
     } \
     \
     _##type##_set_t* _##type##_set_union_(_##type##_set_t *set1, _##type##_set_t *set2) { \
@@ -243,7 +243,7 @@
         for(size_t ind = 0; ind < buckets_size; ++ind) { \
             _##type##_set_match_list_t bucket = vector_get(set->buckets, ind); \
             if(bucket == NULL || list_size(bucket) == 0) continue; \
-            Iterator(_##type##_set_match_t) *iter = get_iterator(bucket); \
+            Iterator(_##type##_set_match_t) *iter = list_get_iterator(bucket); \
             while(iter != NULL) { \
                 _##type##_set_match_t match = iter_val(iter); \
                 list_push_back(list, match.value); \

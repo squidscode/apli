@@ -1,45 +1,29 @@
-#include "../util/map.h"
-#include "../util/vector.h"
-#include "../util/list.h"
-#include "dfa.h"
+#include "lexer.h"
 
-#ifndef call
-#define call(context, arg)      ((context)->call((context), (arg)))
-#endif
+TokenRules* _token_rules_new() {
 
-/**
- * Token rules are defined as a mapping from a "token name" (const char*)
- * to a *DFA* that accepts inputs for that specific language. 
- * 
- * DFA's that accept a specific language can be encoded as functions that 
- * take in a string (const char*) and return `1` if it accepts or `0` if 
- * it rejects. In order to create a list of tokens from a given string, a 
- * binary-search-like algorithm with a DFA function that accepts if the string
- * **contains** the given token can be used. 
- * 
- * In order to avoid confusion, I will be separating the `function' representation
- * of a DFA from an interal (map-based) representation of a DFA
- *   - An `fdfa_t' is a dfa represented as a function closure (or a C-like representation of a 
- *     function closure)
- *     - TYPE : [context] st.
- *       - call(context, const char*)   ->   size_t (indicating true[1] / false[0])
- *   - A `dfa_t' is a dfa represented through a directed graph. The internal representation
- *     of a `dfa_t' isn't important, because a function that converts a `dfa_t' to a
- *     `fdfa_t' must be supplied.
- * 
- */
+}
 
-struct _token_rule_ {
-    const char* name;
+void _token_rules_free(TokenRules* tr) {
+
+}
+
+void _token_rules_add_rule(TokenRules* tr, const char* name, size_t offset, const char* raw_regex) {
+
+}
+
+void _token_rules_compile(TokenRules* tr) {
+
+}
+
+List(_token_t)* _token_rules_tokenize(TokenRules* tr) {
+
+}
+
+_token_rules_fns_t _token_rules_fns_impl = {
+    &_token_rules_new,
+    &_token_rules_free,
+    &_token_rules_add_rule,
+    &_token_rules_compile,
+    &_token_rules_tokenize
 };
-
-// define_vector();
-
-/**
- * A `_token_rules_' struct contains a vector of 
- */
-struct _token_rules_ {
-
-};
-
-typedef struct _token_rules_ token_rules_t;

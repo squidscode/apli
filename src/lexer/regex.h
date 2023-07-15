@@ -6,20 +6,22 @@
 #include "nfa.h"
 
 /**
- * Loads, compiles, and runs a POSIX (BRE) style regex.
+ * Loads, compiles, and runs a POSIX (ERE) style regex.
  * 
  * ----- Usage -----
  *   Regex *reg = regex_from("...");
- *     - regex_compile(reg)                 -> Regex*
- *     - regex_run(reg, str: const char*)   -> size_t ( 0 or 1 )
- *     - regex_free(reg)                    -> void
+ *     - regex_compile(reg)                   -> Regex*
+ *     - regex_run(reg, str: const char*)     -> size_t ( 0 or 1 )
+ *     - regex_find_all(reg, const char*)     -> List(_regex_match_t)*
+ *     - regex_free(reg)                      -> void
  */
 
-#define Regex                   _regex_t
-#define regex_from(str)         (_regex_fn_impl_.from((str)))
-#define regex_compile(regex)    (_regex_fn_impl_.compile((regex)))
-#define regex_run(regex, str)   (_regex_fn_impl_.run((regex), (str)))
-#define regex_free(regex)       (_regex_fn_impl_.destroy((regex)))
+#define Regex                       _regex_t
+#define regex_from(str)             (_regex_fn_impl_.from((str)))
+#define regex_compile(regex)        (_regex_fn_impl_.compile((regex)))
+#define regex_run(regex, str)       (_regex_fn_impl_.run((regex), (str)))
+#define regex_find_all(regex,str)   (_regex_fn_impl_.find_all_matches((regex), (str)))
+#define regex_free(regex)           (_regex_fn_impl_.destroy((regex)))
 
 /**
  * Regex parsing algorithm:
@@ -42,32 +44,36 @@
 
 #define init_regex() \
     define_list(size_t); \
-    define_set(size_t); \
-    define_set_hash(size_t); \
     define_list(char); \
-    define_nfa_transition_type(size_t, char); \
-    define_list(size_t_set_ptr_t); \
-    define_map(size_t, _size_t_char_nfa_transition_map_t); \
-    define_map(size_t, size_t_set_ptr_t); \
-    init_dfa_types(size_t_set_ptr_t, char); \
-    define_dfa(size_t_set_ptr_t, char); \
-    define_set(char); \
-    define_transition(size_t, char); \
-    define_map(_size_t_char_transition_t, size_t); \
+    define_list(int); \
+    init_dfa_types(size_t, char); \
+    typedef struct _size_t_char_dfa_ _size_t_char_dfa_t; \
+    _size_t_char_dfa_t* _size_t_char_dfa_new(); \
+    init_nfa(size_t, char); \
     define_dfa(size_t, char); \
-    const char* construct_int_char_transition_string(Set(size_t) *from, char transition, Set(size_t) *to); \
-    define_nfa(size_t, char); 
+    define_nfa(size_t, char)
 
 struct _regex_;
+struct _regex_match_;
+
+struct _regex_match_ {
+    size_t begin;
+    size_t length;
+};
+typedef struct _regex_match_ _regex_match_t;
+
+
+typedef struct _regex_ _regex_t;
+
+typedef struct __regex_match_t_list_ _regex_match_t_list_t;
 struct _regex_fns_ {
     struct _regex_* (*from)(const char*);
     struct _regex_* (*compile)(struct _regex_*);
     size_t (*run)(struct _regex_*, const char*);
+    List(_regex_match_t)* (*find_all_matches)(struct _regex_*, const char*);
     void (*destroy)(struct _regex_*);
 };
 typedef struct _regex_fns_ _regex_fns_t;
-
-typedef struct _regex_ _regex_t;
 
 /* The virtual table for the regex functions are exposed, if the user wants to 
    override one of the regex functions. */
