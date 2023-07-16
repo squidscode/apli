@@ -8,7 +8,7 @@ define_list(_regex_match_t);
 
 // Have the chunk size start at 500, but eventually narrow down using the MLE of the exponential pdf function:
 // MLE = (n - 2) / SUM(X)
-#define CHUNK_SIZE  (100)
+#define CHUNK_SIZE  (15)
 #define max(x,y)    (((x) < (y)) ? (y) : (x))
 
 typedef enum {RAW_LOADED, COMPILED} _regex_state_type;
@@ -68,10 +68,10 @@ _regex_t* _regex_compile(_regex_t *regex) {
         set_insert(alphabet, i);
     }
     size_t end = _regex_parse(regex->nfa, 0, regex->raw_regex, regex_size);
-    printf("start : %zu\nend : %zu\n", 0UL, end);
+    // printf("start : %zu\nend : %zu\n", 0UL, end);
     nfa_add_accept_state(regex->nfa, end);
     Dfa(size_t_set_ptr_t, char) *dfa = nfa_to_dfa(regex->nfa, alphabet);
-    printf("# of dfa transitions: %zu\n", map_size(dfa->transition_map));
+    // printf("# of dfa transitions: %zu\n", map_size(dfa->transition_map));
     set_free(alphabet);
     regex->fdfa = dfa_to_fdfa(dfa);
     regex->state = COMPILED;
@@ -89,11 +89,11 @@ size_t _regex_parse(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
     const char* raw_regex, size_t raw_regex_size) {
     List(_regex_string_segment_t) *capturing_groups = _regex_split_by_capturing_groups(raw_regex, raw_regex_size);
     List(size_t) *capturing_groups_ends = list_new(size_t);
-    printf("capturing groups size : %zu\n", list_size(capturing_groups));
+    // printf("capturing groups size : %zu\n", list_size(capturing_groups));
     size_t next_start = begin_expansion_state + 1;
     size_t end = begin_expansion_state - 1;
     // Using a function pointer here means no 'if' statement inside the while loop. This is faster.
-    printf("begin_expansion_state: %zu\n", begin_expansion_state);
+    // printf("begin_expansion_state: %zu\n", begin_expansion_state);
     __auto_type fn = (0 == begin_expansion_state) ? &_regex_expand_with_root_tokens : &_regex_expand;
     while(0 < list_size(capturing_groups)) {
         _regex_string_segment_t segment = list_get_front(capturing_groups);
@@ -164,7 +164,7 @@ size_t _regex_expand_with_root_tokens(Nfa(size_t, char) *nfa, size_t begin_expan
     size_t end = begin_expansion_state - 1;
     /* The regex token parser uses 1 look-ahead. */
     _regex_string_segment_t current = list_get_front(tokens);
-    printf("[expand]: "); _debug_print_regex_string_segment_t(current);
+    // printf("[expand]: "); _debug_print_regex_string_segment_t(current);
     list_pop_front(tokens);
     _regex_expand_root_at_start_token(nfa, &current, &next_start, &end);
     if(_regex_string_segment_equals("^", current))
@@ -182,7 +182,7 @@ size_t _regex_expand(Nfa(size_t, char) *nfa, size_t begin_expansion_state, const
     size_t end = begin_expansion_state - 1;
     /* The regex token parser uses 1 look-ahead. */
     _regex_string_segment_t current = list_get_front(tokens);
-    printf("[expand]: "); _debug_print_regex_string_segment_t(current);
+    // printf("[expand]: "); _debug_print_regex_string_segment_t(current);
     list_pop_front(tokens);
     _regex_expand_non_root_token(nfa, tokens, &current, &next_start, &end);
     return end;
@@ -202,7 +202,7 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
     _regex_string_segment_t *current, size_t *next_start, size_t *end) {
     while (0 < list_size(tokens)) {
         _regex_string_segment_t next = list_get_front(tokens);
-        printf("[expand]: "); _debug_print_regex_string_segment_t(next);
+        // printf("[expand]: "); _debug_print_regex_string_segment_t(next);
         if(_regex_is_special_character(*current)) {
             // do nothing
         } else if (_regex_string_segment_equals("*", next)) {
@@ -227,7 +227,7 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
         } else if (0 < next.length && '{' == next.ptr[0] && '}' == next.ptr[next.length - 1]) {
             size_t from = 0; size_t to = 0; from -= 1; to -= 1; // setup
             _regex_process_repeat_token(&from, &to, next.ptr, next.length);
-            printf("from: %zu, to: %zu\n", from, to);
+            // printf("from: %zu, to: %zu\n", from, to);
             nfa_add_epsilon_transition(nfa, (*next_start), (*next_start)+1);
             *next_start = (*next_start) + 1;
             for(size_t i = 0; i < from; ++i) {
@@ -534,7 +534,7 @@ List(_regex_match_t)* _regex_find_all_regex_matches_linear(_regex_t *regex, cons
         list_push_back(matches, next_match);
         if(next_match.length == 0) // break if it is a zero length match
             break;
-        next_match = _regex_find_left_most_match_binary_search(regex, str, next_match.begin + next_match.length, size);
+        next_match = _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size);
     }
     return matches;
 }
@@ -559,6 +559,6 @@ void _debug_print_regex_string_segment_t(_regex_string_segment_t rss) {
     for(size_t i = 0; i < rss.length; ++i)
         buf[i] = rss.ptr[i];
     buf[rss.length] = '\0';
-    printf("String Segment: \"%s\"\n", buf);
+    // printf("String Segment: \"%s\"\n", buf);
     free(buf);
 }

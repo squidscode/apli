@@ -29,13 +29,14 @@
 #define TokenRules                                  _token_rules_t
 #define tr_new()                                    (_token_rules_fns_impl._new())
 #define tr_free(tr)                                 (_token_rules_fns_impl._free((tr)))
-#define tr_add_rule(tr, name, offset, raw_regex)    (_token_rules_fns_impl._add_rule((tr), (name), (offset), (raw_regex)))
+#define tr_add_rule(tr, name, pre, post, raw_regex) (_token_rules_fns_impl._add_rule((tr), (name), (pre), (post), (raw_regex)))
 #define tr_compile(tr)                              (_token_rules_fns_impl._compile((tr)))
 #define tr_tokenize(tr, input)                      (_token_rules_fns_impl._tokenize((tr), (input)))
 
 struct _token_rule_ {
     const char *name;
-    size_t offset;
+    size_t pre_offset;
+    size_t post_offset;
     Regex *regex;
 };
 typedef struct _token_rule_ _token_rule_t;
@@ -60,9 +61,9 @@ typedef struct __token_t_list_ _token_t_list_t;
 struct _token_rules_fns_ {
     TokenRules* (*_new)();
     void (*_free)(TokenRules*);
-    void (*_add_rule)(TokenRules*, const char*, size_t, const char*);
+    void (*_add_rule)(TokenRules*, const char*, size_t, size_t, const char*);
     void (*_compile)(TokenRules*);
-    List(_token_t)* (*_tokenize)(TokenRules*);
+    List(_token_t)* (*_tokenize)(TokenRules*, const char*);
 };
 typedef struct _token_rules_fns_ _token_rules_fns_t;
 

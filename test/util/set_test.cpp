@@ -35,7 +35,7 @@ int main() {
     assertTrue(0 == set_equals(set1, set2));
 
     List(int) *set1_list = set_get_list(set1);
-    Iterator(int) *iter = get_iterator(set1_list);
+    Iterator(int) *iter = list_get_iterator(set1_list);
     while(iter != NULL) {
         assertTrue(set_count(set2, iter_val(iter))); // all values in set1 are in set2!
         iter = iter_next(iter);
