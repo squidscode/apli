@@ -96,6 +96,8 @@
         size_t size = (sizeof(type) / sizeof(char)); \
         size_t mod = (sizeof(size_t) / sizeof(char)); \
         size_t offset = 0; \
+        /* A CHAR CAST! Gasp! DO NOT port hash values produced by this function \
+           the endian-ness of the machine MATTERS (because of the mod)! */ \
         char *ptr = (char*) ((void*) &key); \
         size_t hash = 0; \
         for(size_t i = 0; i < size; ++i) { \

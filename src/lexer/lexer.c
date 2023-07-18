@@ -42,8 +42,8 @@ List(_token_t)* _token_rules_tokenize(TokenRules *tr, const char *input) {
     vector_resize_val(matches, vector_size(tr->rules), NULL);
     size_t size = vector_size(tr->rules);
     for(size_t i = 0; i < size; ++i) {
-        printf("Finished lexing! %zu/%zu\n", i + 1, size);
         vector_set(matches, i, regex_find_all(vector_get(tr->rules, i).regex, input));
+        printf("Finished lexing! %zu/%zu\n", i + 1, size);
     }
     List(_token_t) *tokens = list_new(_token_t); size_t min_beginning = 0;
     while(_token_rules_matches_vector_has_matches(matches)) {
@@ -52,16 +52,16 @@ List(_token_t)* _token_rules_tokenize(TokenRules *tr, const char *input) {
             _matches_ptr next_match = vector_get(matches, i);
             // ----
             // TODO delete the following block:
-            char buf[500];
+            // char buf[500];
             // ----
             while(0 < list_size(next_match) && 
                 (list_get_front(next_match).begin + vector_get(tr->rules, i).pre_offset < min_beginning)) {
                     // ----
                     // TODO delete the following block:
-                    const char* beg = input + list_get_front(next_match).begin + vector_get(tr->rules, i).pre_offset;
-                    size_t sz = list_get_front(next_match).length - vector_get(tr->rules, i).pre_offset - vector_get(tr->rules, i).post_offset;
-                    memcpy(buf, beg, sz);
-                    buf[sz] = '\0';
+                    // const char* beg = input + list_get_front(next_match).begin + vector_get(tr->rules, i).pre_offset;
+                    // size_t sz = list_get_front(next_match).length - vector_get(tr->rules, i).pre_offset - vector_get(tr->rules, i).post_offset;
+                    // memcpy(buf, beg, sz);
+                    // buf[sz] = '\0';
                     // printf("discarding: \"%s\"\n", buf);
                     // ----
                     list_pop_front(next_match);
@@ -78,6 +78,7 @@ List(_token_t)* _token_rules_tokenize(TokenRules *tr, const char *input) {
         };
         min_beginning = list_get_front(vector_get(matches, min_ind)).begin + list_get_front(vector_get(matches, min_ind)).length - vector_get(tr->rules, min_ind).post_offset;
         list_pop_front(vector_get(matches, min_ind));
+        // if(0 == list_size(tokens) || list_get_back(tokens).ptr + list_get_back(tokens).length <= next_token.ptr)
         list_push_back(tokens, next_token);
     }
     return tokens;

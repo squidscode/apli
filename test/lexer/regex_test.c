@@ -204,7 +204,7 @@ int main() {
     regex_free(repeat_regex);
 
     // FOR FUN!
-    const char *contents = ftoca("../../src/lexer/regex.c");
+    const char *contents = ftoca("./src/lexer/regex.c");
     Regex *string_regex = regex_from("[^\\]\"[^\n]*[^\\]\"");
     regex_compile(string_regex);
     list_of_matches = regex_find_all(string_regex, contents);

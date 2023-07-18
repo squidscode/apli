@@ -3,5 +3,7 @@ The Abstract Programming Language Interpreter (APLI) is a customizable interpret
 
 Execute the following command to see the lexer in action:
 ```bash
-$ clang -D DEBUG -D COLOR -D MEMORY_CHECK -g -fsanitize=address -fno-omit-frame-pointer test/lexer/lex_test.c ; ./a.out; rm a.out;
+$ clang -D COLOR -Ofast test/lexer/lex_test.c; \
+    ./a.out; \
+    rm ./a.out;
 ```

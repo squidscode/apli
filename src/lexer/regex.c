@@ -8,7 +8,8 @@ define_list(_regex_match_t);
 
 // Have the chunk size start at 500, but eventually narrow down using the MLE of the exponential pdf function:
 // MLE = (n - 2) / SUM(X)
-#define CHUNK_SIZE  (15)
+#define SEARCH_CHUNK_SIZE   (100)
+#define TOKEN_CHUNK_SIZE    (15)
 #define max(x,y)    (((x) < (y)) ? (y) : (x))
 
 typedef enum {RAW_LOADED, COMPILED} _regex_state_type;
@@ -58,6 +59,7 @@ void _regex_expand_root_at_end_token(Nfa(size_t, char) *nfa, _regex_string_segme
 void _regex_process_repeat_token(size_t *from, size_t *to, const char *raw_regex, size_t raw_regex_size);
 
 // The alphabet set is global, and I know this is bad design, but it's not `extern' so it's fine! (irony)
+// TODO pass the alphabet set into the functions
 Set(char) *alphabet;
 
 _regex_t* _regex_compile(_regex_t *regex) {
@@ -79,8 +81,6 @@ _regex_t* _regex_compile(_regex_t *regex) {
 }
 
 /* TODO the following:
- * - add '^' and '$' special characters
- * - parse '{}' family correctly.
  * - compress the final dfa created AND free the original set nfa.
  */
 
@@ -97,7 +97,7 @@ size_t _regex_parse(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
     __auto_type fn = (0 == begin_expansion_state) ? &_regex_expand_with_root_tokens : &_regex_expand;
     while(0 < list_size(capturing_groups)) {
         _regex_string_segment_t segment = list_get_front(capturing_groups);
-        _debug_print_regex_string_segment_t(segment);
+        // _debug_print_regex_string_segment_t(segment);
         nfa_add_epsilon_transition(nfa, begin_expansion_state, next_start);
         list_push_back(capturing_groups_ends,
             (end = (*fn)(nfa, next_start, segment.ptr, segment.length)));
@@ -340,7 +340,7 @@ size_t _regex_expand_token(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
         return begin_expansion_state + 1;
     }
     _regex_string_segment_t rss = {raw_regex, raw_regex_size};
-    _debug_print_regex_string_segment_t(rss);
+    // _debug_print_regex_string_segment_t(rss);
     assert(0 == "Invalid regex format.");
 }
 
@@ -488,7 +488,7 @@ _regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const 
     // Binary search for right_bound where: [start, right_bound) == 0
     size_t left = start; size_t right = right_bound;
     while(1 < right - left) {
-        size_t optimal_size = max(2, (right - left) / CHUNK_SIZE);
+        size_t optimal_size = max(2, (right - left) / SEARCH_CHUNK_SIZE);
         List(size_t) *mids = _regex_get_mids(optimal_size, left, right);
         while(list_size(mids)) {
             size_t mid = list_get_front(mids); list_pop_front(mids);
@@ -522,19 +522,79 @@ _regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const 
     return leftmost_match;
 }
 
-List(_regex_match_t)* _regex_find_all_regex_matches_linear(_regex_t *regex, const char *str) {
+_regex_match_t _regex_find_left_most_match_full_binary_search(_regex_t *regex, const char *str, size_t start, size_t end) {
+    const _regex_match_t inv_match = {-1,-1};
+    const _regex_match_t zero_match = {start, 0};
+    size_t size = strlen(str);
+    List(char) *str_list;
+
+    // Binary search for right_bound where: [start, right_bound) == 0
+    size_t left = start; size_t right = end;
+    while(1 < right - left) {
+        size_t optimal_size = max(2, (right - left) / SEARCH_CHUNK_SIZE);
+        List(size_t) *mids = _regex_get_mids(optimal_size, left, right);
+        while(list_size(mids)) {
+            size_t mid = list_get_front(mids); list_pop_front(mids);
+            str_list = _regex_construct_list_with_interval(str, start, mid);
+            size_t result = call(regex->fdfa, list_get_iterator(str_list));
+            0 == result ? (left = mid) : (right = mid);
+            list_free(str_list);
+            if (1 == result)
+                break;
+        }
+        list_free(mids);
+    }
+    size_t right_bound = left;
+
+    if (right_bound == -1 || right_bound == end - 1) return inv_match;
+
+    // binary search for [left_bound, right_bound] == 0
+    left = start; right = right_bound + 1;
+    while(1 < right - left) {
+        size_t optimal_size = max(2, (right - left) / TOKEN_CHUNK_SIZE);
+        List(size_t) *mids = _regex_get_mids(optimal_size, left, right);
+        while(list_size(mids)) {
+            size_t mid = list_get_back(mids); list_pop_back(mids); // NOTE: pop_back vs pop_front
+            str_list = _regex_construct_list_with_interval(str, mid, right_bound+1); // [mid, rb)
+            size_t result = call(regex->fdfa, list_get_iterator(str_list));
+            0 != result ? (left = mid) : (right = mid);
+            list_free(str_list);
+            if (1 == result)
+                break;
+        }
+        list_free(mids);
+    }
+    size_t left_bound = left;
+
+    if (left_bound == -1) return inv_match;
+
+    _regex_match_t leftmost_match = {left_bound, right_bound - left_bound + 1};
+    return leftmost_match;
+}
+
+
+List(_regex_match_t)* _regex_find_all_regex_matches(_regex_t *regex, const char *str) {
     if(COMPILED != regex->state)
         assert(0 == "A regex cannot be run without first being compiled.");
     List(_regex_match_t) *matches = list_new(_regex_match_t);
     List(char) *str_list = list_new(char);
     size_t size = strlen(str);
     _regex_match_t next_match = {0, 0};
-    next_match = _regex_find_left_most_match_binary_search(regex, str, 0, size);
+    next_match = _regex_find_left_most_match_full_binary_search(regex, str, 0, size);
     while(next_match.begin != -1 && next_match.length != -1) { // a -1 for both start and end indicates a non-match
         list_push_back(matches, next_match);
         if(next_match.length == 0) // break if it is a zero length match
             break;
         next_match = _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size);
+
+        /**
+         * For "adaptive search" use "full_binary_search" that uses bin_search both ways. Otherwise, for most cases, 
+         * a single left-binary-search is faster. Adaptive search finds the left-bound using binary search, but it is
+         * more inefficient because the regex `run' function runs very fast (so the effects of spamming `run' is negligible).
+         * 
+         * next_match = (TOKEN_CHUNK_SIZE < next_match.length) ? _regex_find_left_most_match_full_binary_search(regex, str, next_match.begin + 1, size)
+         *                                                     : _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size);
+        */
     }
     return matches;
 }
@@ -550,15 +610,16 @@ _regex_fns_t _regex_fn_impl_ = {
     &_regex_from,
     &_regex_compile,
     &_regex_run,
-    &_regex_find_all_regex_matches_linear,
+    &_regex_find_all_regex_matches,
     &_regex_destroy
 };
 
 void _debug_print_regex_string_segment_t(_regex_string_segment_t rss) {
+    assert(0 == "I am not called!");
     char *buf = (char*) (malloc(rss.length + 1));
     for(size_t i = 0; i < rss.length; ++i)
         buf[i] = rss.ptr[i];
     buf[rss.length] = '\0';
-    // printf("String Segment: \"%s\"\n", buf);
+    printf("String Segment: \"%s\"\n", buf);
     free(buf);
 }

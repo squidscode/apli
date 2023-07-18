@@ -12,3 +12,8 @@ Useful links:
 
 Extensions:
 - Is it possible to make a "un-parser" that converts an AST into another language? Perhaps, if this is possible, it might be possible to transpile any language supported by the APLI to another language that is supported by the APLI.
+
+# For debugging purposes only:
+```bash
+clang -D DEBUG -D COLOR -D MEMORY_CHECK -fsanitize=address -fno-omit-frame-pointer -O2 test/lexer/lex_test.c ; ./a.out; rm a.out;
+```
