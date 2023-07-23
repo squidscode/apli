@@ -1,5 +1,5 @@
 #include "../../src/lexer/nfa.h"
-#include "../testlib/testlib.c"
+#include "../testlib/testlib.h"
 
 define_list(size_t);
 define_list(char);

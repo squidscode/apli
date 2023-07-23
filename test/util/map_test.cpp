@@ -1,5 +1,5 @@
 #include "../../src/util/map.h"
-#include "../testlib/testlib.c"
+#include "../testlib/testlib.h"
 #include <cstdio>
 #include <string.h>
 #include <set>

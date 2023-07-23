@@ -1,4 +1,4 @@
-#include "../testlib/testlib.c"
+#include "../testlib/testlib.h"
 #include "../../src/util/set.h"
 
 define_list(int);

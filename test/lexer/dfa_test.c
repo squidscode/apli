@@ -1,4 +1,4 @@
-#include "../testlib/testlib.c"
+#include "../testlib/testlib.h"
 #include "../../src/lexer/dfa.h"
 
 define_list(int);

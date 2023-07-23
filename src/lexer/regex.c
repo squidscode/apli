@@ -1,18 +1,18 @@
-#include "regex.h"
 #include "dfa.h"
 #include "nfa.h"
 #include <stdio.h>
+// #include "regex.h"
 
 init_regex();
 define_list(_regex_match_t);
 
-// Have the chunk size start at 500, but eventually narrow down using the MLE of the exponential pdf function:
+// Have the chunk size start at 100, but eventually narrow down using the MLE of the exponential pdf function:
 // MLE = (n - 2) / SUM(X)
-#define SEARCH_CHUNK_SIZE   (100)
+#define SEARCH_CHUNK_SIZE   (1000)
 #define TOKEN_CHUNK_SIZE    (15)
 #define max(x,y)    (((x) < (y)) ? (y) : (x))
 
-typedef enum {RAW_LOADED, COMPILED} _regex_state_type;
+typedef enum {REGEX_RAW_LOADED, REGEX_COMPILED} _regex_state_type;
 struct _regex_ {
     _regex_state_type state;
     const char* raw_regex;
@@ -25,7 +25,7 @@ _regex_t* _regex_from(const char* str) {
     char *buf = (char*) malloc(str_size * sizeof(char) + 1);
     strcpy(buf, str);
     _regex_t *new_regex = (_regex_t*) malloc(sizeof(_regex_t));
-    new_regex->state = RAW_LOADED;
+    new_regex->state = REGEX_RAW_LOADED;
     new_regex->raw_regex = buf;
     new_regex->nfa = NULL;
     new_regex->fdfa = NULL;
@@ -76,7 +76,7 @@ _regex_t* _regex_compile(_regex_t *regex) {
     // printf("# of dfa transitions: %zu\n", map_size(dfa->transition_map));
     set_free(alphabet);
     regex->fdfa = dfa_to_fdfa(dfa);
-    regex->state = COMPILED;
+    regex->state = REGEX_COMPILED;
     return regex;
 }
 
@@ -412,7 +412,7 @@ List(_regex_string_segment_t)* _regex_split_by_tokens(const char *ptr, size_t si
 }
 
 size_t _regex_run(_regex_t *regex, const char *str) {
-    if(COMPILED != regex->state)
+    if(REGEX_COMPILED != regex->state)
         assert(0 == "A regex cannot be run without first being compiled.");
     List(char) *str_list = list_new(char);
     size_t size = strlen(str);
@@ -478,7 +478,7 @@ List(size_t)* _regex_get_mids(size_t size, size_t start, size_t end) {
     return mids;
 }
 
-_regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const char *str, size_t start, size_t end) {
+_regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const char *str, size_t start, size_t end, size_t search_chunk_size) {
     const _regex_match_t inv_match = {-1,-1};
     const _regex_match_t zero_match = {start, 0};
     size_t size = strlen(str);
@@ -488,7 +488,7 @@ _regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const 
     // Binary search for right_bound where: [start, right_bound) == 0
     size_t left = start; size_t right = right_bound;
     while(1 < right - left) {
-        size_t optimal_size = max(2, (right - left) / SEARCH_CHUNK_SIZE);
+        size_t optimal_size = max(2, (right - left) / search_chunk_size);
         List(size_t) *mids = _regex_get_mids(optimal_size, left, right);
         while(list_size(mids)) {
             size_t mid = list_get_front(mids); list_pop_front(mids);
@@ -574,18 +574,56 @@ _regex_match_t _regex_find_left_most_match_full_binary_search(_regex_t *regex, c
 
 
 List(_regex_match_t)* _regex_find_all_regex_matches(_regex_t *regex, const char *str) {
-    if(COMPILED != regex->state)
+    if(REGEX_COMPILED != regex->state)
         assert(0 == "A regex cannot be run without first being compiled.");
     List(_regex_match_t) *matches = list_new(_regex_match_t);
     List(char) *str_list = list_new(char);
     size_t size = strlen(str);
     _regex_match_t next_match = {0, 0};
-    next_match = _regex_find_left_most_match_full_binary_search(regex, str, 0, size);
+    next_match = _regex_find_left_most_match_binary_search(regex, str, 0, size, SEARCH_CHUNK_SIZE);
     while(next_match.begin != -1 && next_match.length != -1) { // a -1 for both start and end indicates a non-match
         list_push_back(matches, next_match);
         if(next_match.length == 0) // break if it is a zero length match
             break;
-        next_match = _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size);
+        next_match = _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size, SEARCH_CHUNK_SIZE);
+
+        /**
+         * For "adaptive search" use "full_binary_search" that uses bin_search both ways. Otherwise, for most cases, 
+         * a single left-binary-search is faster. Adaptive search finds the left-bound using binary search, but it is
+         * more inefficient because the regex `run' function runs very fast (so the effects of spamming `run' is negligible).
+         * 
+         * next_match = (TOKEN_CHUNK_SIZE < next_match.length) ? _regex_find_left_most_match_full_binary_search(regex, str, next_match.begin + 1, size)
+         *                                                     : _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size);
+        */
+    }
+    return matches;
+}
+
+List(_regex_match_t)* _regex_find_all_regex_matches_exponential_pdf(_regex_t *regex, const char *str) {
+    if(REGEX_COMPILED != regex->state)
+        assert(0 == "A regex cannot be run without first being compiled.");
+    List(_regex_match_t) *matches = list_new(_regex_match_t);
+    List(char) *str_list = list_new(char);
+    size_t size = strlen(str);
+    _regex_match_t next_match = {0, 0};
+    next_match = _regex_find_left_most_match_binary_search(regex, str, 0, size, SEARCH_CHUNK_SIZE);
+    size_t num_deltas = 0;      // number of collected intervals
+    size_t sum_of_deltas = 0;   // sum of intervals.
+    // MLE = (n - 2) / SUM(X)
+    while(next_match.begin != -1 && next_match.length != -1) { // a -1 for both start and end indicates a non-match
+        list_push_back(matches, next_match);
+        if(next_match.length == 0) // break if it is a zero length match
+            break;
+        
+        size_t prev_end = next_match.begin + 1;
+        size_t predicted_chunk_size = (2 < num_deltas && sum_of_deltas / (num_deltas - 2) < SEARCH_CHUNK_SIZE)
+            ? sum_of_deltas / (num_deltas - 2)
+            : SEARCH_CHUNK_SIZE;
+        // if(num_deltas % 50 == 0) printf("predicted_chunk_size: %zu\n", predicted_chunk_size);
+        next_match = _regex_find_left_most_match_binary_search(regex, str, next_match.begin + 1, size, 
+            predicted_chunk_size);
+        num_deltas += 1;
+        sum_of_deltas += (next_match.begin + next_match.length - prev_end);
 
         /**
          * For "adaptive search" use "full_binary_search" that uses bin_search both ways. Otherwise, for most cases, 
@@ -610,7 +648,8 @@ _regex_fns_t _regex_fn_impl_ = {
     &_regex_from,
     &_regex_compile,
     &_regex_run,
-    &_regex_find_all_regex_matches,
+    // &_regex_find_all_regex_matches,
+    &_regex_find_all_regex_matches_exponential_pdf,
     &_regex_destroy
 };
 

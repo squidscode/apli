@@ -1,6 +1,5 @@
 #include "../../src/lexer/regex.h"
-#include "../../src/lexer/regex.c"
-#include "../testlib/testlib.c"
+#include "../testlib/testlib.h"
 #include <stdio.h>
 
 void print_matches(const char *str, List(_regex_match_t) *list_of_matches);

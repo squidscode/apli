@@ -79,4 +79,6 @@ typedef struct _regex_fns_ _regex_fns_t;
    override one of the regex functions. */
 extern _regex_fns_t _regex_fn_impl_;
 
+#include "regex.c"
+
 #endif

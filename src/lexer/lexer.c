@@ -1,12 +1,10 @@
-#include "lexer.h"
-#include "regex.c"
+#include "regex.h"
+// #include "lexer.h" // for syntax-completion
 
 define_vector(_token_rule_t);
 
 typedef List(_regex_match_t)* _matches_ptr;
 define_vector(_matches_ptr);
-
-define_list(_token_t);
 
 TokenRules* _token_rules_new() {
     TokenRules *new_tr = (TokenRules*) malloc(sizeof(TokenRules));
@@ -14,7 +12,7 @@ TokenRules* _token_rules_new() {
     return new_tr;
 }
 
-void _token_rules_free(TokenRules *tr) {
+static void _token_rules_free(TokenRules *tr) {
     size_t size = vector_size(tr->rules);
     for(size_t i = 0; i < size; ++i) {
         regex_free(vector_get(tr->rules, i).regex);

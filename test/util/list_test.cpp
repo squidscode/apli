@@ -1,6 +1,6 @@
 #include "../../src/util/list.h"
 #include <list>
-#include "../testlib/testlib.c"
+#include "../testlib/testlib.h"
 
 define_list(int);
 
