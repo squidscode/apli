@@ -55,7 +55,7 @@ int main() {
     token_rules_add_rule_offset(token_rules, close_brack, 0, 0, "\\]");
     token_rules_add_rule_offset(token_rules, type, 1, 1, "[^"ALPHANUMERIC"]const (size_t|void|char|int)[^"ALPHANUMERIC"]");
     token_rules_add_rule_offset(token_rules, type, 1, 1, "[^"ALPHANUMERIC"](size_t|void|char|int)[^"ALPHANUMERIC"]");
-    token_rules_add_rule_offset(token_rules, keyword, 0, 0, "(while|for|return|#include|#define|#ifndef|#endif|#ifdef|typedef)");
+    token_rules_add_rule_offset(token_rules, keyword, 0, 0, "(while|for|return|#include|#define|#ifndef|#endif|#ifdef|typedef|if|else|break|continue)");
     token_rules_add_rule_offset(token_rules, special_operators, 0, 0, "(\\*|&)");
     token_rules_add_rule_offset(token_rules, operator, 0, 0, "(==|!=|<=|>=|->|\\+=|-=|\\+\\+|--|&&|<<|>>)");
     token_rules_add_rule_offset(token_rules, number, 0, 0, "(-[123456789][0123456789]*)");
