@@ -14,6 +14,7 @@
 #define List(TYPE)                  TYPE##_list_t
 #define Iterator(TYPE)              TYPE##_list_node_t
 #define list_get_iterator(list)          ((list)->_first)
+#define iter_is_not_null(iter)      ((iter) != NULL)
 #define iter_has_next(iter)         ((iter)->_next != NULL)
 #define iter_next(iter)             ((iter)->_next)
 #define iter_val(iter)              ((iter)->_val)

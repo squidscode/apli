@@ -9,6 +9,7 @@
 #define vector_set(vec, index, val)         ((vec)->_fns->set((vec), (index), (val)))
 #define vector_remove(vec, index)           ((vec)->_fns->remove((vec), (index)))
 #define vector_pop_back(vec)                ((vec)->_fns->pop_back((vec)))
+#define vector_get_back(vec)                (vector_get((vec), vector_size((vec)) - 1))
 #define vector_push_back(vec, val)          ((vec)->_fns->push_back((vec), (val)))
 #define vector_resize(vec, size)            ((vec)->_fns->resize((vec), (size), 0))
 #define vector_resize_val(vec, size, val)   ((vec)->_fns->resize((vec), (size), (val)))             

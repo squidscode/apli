@@ -67,6 +67,8 @@ List(_token_t)* _token_rules_tokenize(TokenRules *tr, const char *input) {
             if(0 < list_size(next_match) && min_val > list_get_front(next_match).begin + vector_get(tr->rules, i).pre_offset)
                 (min_ind = i, min_val = list_get_front(next_match).begin + vector_get(tr->rules, i).pre_offset);
         }
+        if (min_val == 0UL - 1) // If the minimum value has not changed.
+            break;
         const char* token_ptr = input + list_get_front(vector_get(matches, min_ind)).begin + vector_get(tr->rules, min_ind).pre_offset;
         size_t token_length = list_get_front(vector_get(matches, min_ind)).length - vector_get(tr->rules, min_ind).pre_offset - vector_get(tr->rules, min_ind).post_offset;
         _token_t next_token = {

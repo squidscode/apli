@@ -24,7 +24,7 @@
 #define Token                                                        _token_t
 #define token_rules_new()                                            (_token_rules_fns_impl._new())
 #define token_rules_free(tr)                                         (_token_rules_fns_impl._free((tr)))
-#define token_rules_add_rule(tr, name, raw_regex)                    (tr_add_rule_offset((tr), (name), 0, 0, (raw_regex)))
+#define token_rules_add_rule(tr, name, raw_regex)                    (_token_rules_fns_impl._add_rule((tr), (name), 0, 0, (raw_regex)))
 #define token_rules_add_rule_offset(tr, name, pre, post, raw_regex)  (_token_rules_fns_impl._add_rule((tr), (name), (pre), (post), (raw_regex)))
 #define token_rules_compile(tr)                                      (_token_rules_fns_impl._compile((tr)))
 #define token_rules_tokenize(tr, input)                              (_token_rules_fns_impl._tokenize((tr), (input)))

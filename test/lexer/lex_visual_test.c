@@ -21,7 +21,7 @@ define_map(str_ptr, str_ptr);
 
 int main() {
     /* Lex a C-like file: */
-    const char *contents = ftoca("./src/lexer/regex.c");
+    const char *content = ftoca("./src/lexer/regex.c");
     TokenRules *token_rules = token_rules_new();
     Map(str_ptr, str_ptr) *colors = map_new(str_ptr, str_ptr);
     const char* string_literal = "string-literal";  map_insert(colors, string_literal, "\x1b[38;2;110;207;255;1m");
@@ -64,17 +64,17 @@ int main() {
     token_rules_add_rule_offset(token_rules, fn_identifier, 1, 1, "[^#"ALPHANUMERIC"][#"ALPHANUMERIC"]+[ ]*\\(");
     token_rules_add_rule_offset(token_rules, identifier, 1, 1, "[^#"ALPHANUMERIC"][#"ALPHANUMERIC"]+[^#"ALPHANUMERIC"]");
     token_rules_compile(token_rules);
-    List(_token_t) *tokens = token_rules_tokenize(token_rules, contents);
+    List(_token_t) *tokens = token_rules_tokenize(token_rules, content);
 
     // Prints the file with tokens highlighted
-    size_t size = strlen(contents); size_t num_discarded = 0; size_t num_tokens = list_size(tokens);
+    size_t size = strlen(content); size_t num_discarded = 0; size_t num_tokens = list_size(tokens);
     for(size_t i = 0; i < size; ++i) {
-        if(list_size(tokens) && contents + i == list_get_front(tokens).ptr)
+        if(list_size(tokens) && content + i == list_get_front(tokens).ptr)
             printf("%s", map_at(colors, list_get_front(tokens).name));
-        printf("%c", contents[i]);
-        if(list_size(tokens) && contents + i == list_get_front(tokens).ptr + list_get_front(tokens).length - 1)
+        printf("%c", content[i]);
+        if(list_size(tokens) && content + i == list_get_front(tokens).ptr + list_get_front(tokens).length - 1)
             printf("" RESET);
-        while(list_size(tokens) && contents + i >= list_get_front(tokens).ptr + list_get_front(tokens).length - 1)
+        while(list_size(tokens) && content + i >= list_get_front(tokens).ptr + list_get_front(tokens).length - 1)
             (num_discarded++, list_pop_front(tokens));
     }
     // Checking if tokens were well-formed

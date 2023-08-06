@@ -578,7 +578,7 @@ List(_regex_match_t)* _regex_find_all_regex_matches(_regex_t *regex, const char 
         assert(0 == "A regex cannot be run without first being compiled.");
     List(_regex_match_t) *matches = list_new(_regex_match_t);
     List(char) *str_list = list_new(char);
-    size_t size = strlen(str);
+    size_t size = strlen(str) + 1;
     _regex_match_t next_match = {0, 0};
     next_match = _regex_find_left_most_match_binary_search(regex, str, 0, size, SEARCH_CHUNK_SIZE);
     while(next_match.begin != -1 && next_match.length != -1) { // a -1 for both start and end indicates a non-match
@@ -604,7 +604,7 @@ List(_regex_match_t)* _regex_find_all_regex_matches_exponential_pdf(_regex_t *re
         assert(0 == "A regex cannot be run without first being compiled.");
     List(_regex_match_t) *matches = list_new(_regex_match_t);
     List(char) *str_list = list_new(char);
-    size_t size = strlen(str);
+    size_t size = strlen(str) + 1;
     _regex_match_t next_match = {0, 0};
     next_match = _regex_find_left_most_match_binary_search(regex, str, 0, size, SEARCH_CHUNK_SIZE);
     size_t num_deltas = 0;      // number of collected intervals
