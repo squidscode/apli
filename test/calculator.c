@@ -14,17 +14,18 @@
 apli_init();
 apli_define_functions(expr, term, factor);
 
-int main(int argc, char **argv) {
+__APLI_START__
+
     if(2 != argc)
         assert(0 == "The second argument must be the mathematical expression");
 
-    apli_main_init();
     apli_non_terminals(expr, term, factor);
     apli_terminals(NUMBER, PLUS, MINUS, STAR, FORWARD_SLASH, OPEN_PAREN, CLOSE_PAREN);
 
     apli_regex(
-        (NUMBER, "(-[123456789][0123456789]*)"),
-        (NUMBER, "(\\+?[123456789][0123456789]*|0)"),
+        (NUMBER, "([^1234567890]-[123456789][0123456789]*[^1234567890])", 1, 1),
+        (NUMBER, "([^1234567890]\\+?[123456789][0123456789]*[^1234567890])", 1, 1),
+        (NUMBER, "[^1234567890]0[^1234567890]", 1, 1),
         (PLUS, "\\+"),
         (MINUS, "-"),
         (STAR, "\\*"),
@@ -45,10 +46,25 @@ int main(int argc, char **argv) {
     apli_ebnf_rule(factor, NUMBER);
     apli_ebnf_rule(factor, OPEN_PAREN, expr, CLOSE_PAREN);
 
-    // parse_tree_result = apli_get_parse_tree("(1 + 1) / 1 * 5 + 3*2 + 5 + 4 / 2");
+    const size_t num_buf_chars = 10;
+    char *cpy = (char*) malloc(strlen(argv[1]) + 2 * num_buf_chars + 1);
+    const size_t sz = strlen(argv[1]);
+    for(size_t i = 0; i < num_buf_chars; ++i) {
+        cpy[i] = ' ';
+    }
+    for(size_t i = num_buf_chars; i < num_buf_chars + sz; ++i) {
+        cpy[i] = argv[1][i - num_buf_chars];
+    }
+    for(size_t i = num_buf_chars + sz; i < 2 * num_buf_chars + sz; ++i) {
+        cpy[i] = ' ';
+    }
+    cpy[2 * num_buf_chars + sz] = '\0';
 
-    // printf("%i\n", apli_evaluate_node(parse_tree_result.root));
-    printf("%i\n", apli_evaluate(argv[1]));
+    // printf("`%s`\n", cpy);
+
+    printf("%i\n", apli_evaluate(cpy));
+
+    free(cpy);
 
 __APLI_END__
 

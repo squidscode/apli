@@ -47,7 +47,7 @@
 #define apli_regex_compile()        token_rules_compile(token_rules)
 
 #define __APLI_START__ \
-    int main(void) { \
+    int main(int argc, char **argv) { \
         apli_main_init();
 
 #define apli_main_init() \
@@ -88,9 +88,6 @@ typedef const char* apli_function_name;
 #define apli_evaluate(input) \
     (parse_tree_result = apli_get_parse_tree(input), \
      apli_evaluate_node(parse_tree_result.root))
-
-#define load_into_buffer(buf, str, len) \
-    (, printf("`%s`\n", buf), buf)
 
 #define apli_evaluate_node(node) \
     map_at(eval_fns, \
