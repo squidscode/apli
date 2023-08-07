@@ -98,4 +98,15 @@ typedef const char* apli_function_name;
 #define apli_get_parse_tree(input) \
     ebnf_rules_construct_parse_tree(ebnf_rules, token_rules_tokenize(token_rules, input))
 
+#define apli_num_children() vector_size(node.children)
+#define apli_get_child(child_number) vector_get(node.children, child_number - 1)
+#define apli_get_child_token(child_number) apli_get_child(child_number).root.ptr.token
+#define apli_eval_child(child_number) apli_evaluate_node(apli_get_child(child_number))
+#define apli_child_token_name_equals(token_id, child_number) \
+    (0 == apli_get_child(child_number).root.is_terminal_t && 0 == strcmp(#token_id, apli_get_child_token(child_number).name))
+#define ApliToken _token_t
+#define apli_token_name(token) token.name
+#define apli_token_ref(token) token.ptr
+#define apli_token_reflen(token) token.length
+
 #endif

@@ -84,6 +84,7 @@ typedef struct _terminal_ _terminal_t;
 static const _terminal_t null_terminal = {-1, "", 0};
 
 _terminal_t _terminal_from(char is_terminal, const char *name, size_t name_length) {
+    assert(name[name_length] == '\0');
     _terminal_t term = {is_terminal, name, name_length};
     return term;
 }

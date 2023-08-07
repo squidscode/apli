@@ -58,51 +58,51 @@ __APLI_START__
 __APLI_END__
 
 apli_function(expr) {
-    size_t sz = vector_size(node.children);
+    size_t sz = apli_num_children();
     if(1 == sz)
         return apli_evaluate_node(vector_get(node.children, 0));
     else if(3 == sz) {
-        if(0 == strcmp("PLUS", vector_get(node.children, 1).root.ptr.token.name))
-            return apli_evaluate_node(vector_get(node.children, 0)) + apli_evaluate_node(vector_get(node.children, 2));
+        if(apli_child_token_name_equals(PLUS, 2))
+            return apli_eval_child(1) + apli_eval_child(3);
         else
-            return apli_evaluate_node(vector_get(node.children, 0)) - apli_evaluate_node(vector_get(node.children, 2));
+            return apli_eval_child(1) - apli_eval_child(3);
     }
     assert(0 == "Not reachable.");
     return -1;
 }
 
 apli_function(term) {
-    size_t sz = vector_size(node.children);
+    size_t sz = apli_num_children();
     if(1 == sz) {
-        return apli_evaluate_node(vector_get(node.children, 0));
+        return apli_eval_child(1);
     } else if(3 == sz) {
-        if(0 == strcmp("STAR", vector_get(node.children, 1).root.ptr.token.name))
-            return apli_evaluate_node(vector_get(node.children, 0)) * apli_evaluate_node(vector_get(node.children, 2));
+        if(apli_child_token_name_equals(STAR, 2))
+            return apli_eval_child(1) * apli_eval_child(3);
         else
-            return apli_evaluate_node(vector_get(node.children, 0)) / apli_evaluate_node(vector_get(node.children, 2));
+            return apli_eval_child(1) / apli_eval_child(3);
     }
     assert(0 == "Not reachable.");
     return -1;
 }
 
 
-static inline int NUMBER_token_to_int(_token_t number);
+static inline int NUM_to_int(ApliToken number);
 
 apli_function(factor) {
-    size_t sz = vector_size(node.children);
+    size_t sz = apli_num_children();
     if(1 == sz) {
         // Pull the number out of the token and load it into a buffer:
-        return NUMBER_token_to_int(vector_get(node.children, 0).root.ptr.token);
+        return NUM_to_int(apli_get_child_token(1));
     } else if(3 == sz) {
-        if(0 == strcmp("NUMBER", vector_get(node.children, 2).root.ptr.token.name)) {
+        if(apli_child_token_name_equals(NUMBER, 3)) {
             int ret = 1;
-            int base = apli_evaluate_node(vector_get(node.children, 0));
-            int pow = NUMBER_token_to_int(vector_get(node.children, 2).root.ptr.token);
+            int base = apli_eval_child(1);
+            int pow = NUM_to_int(apli_get_child_token(3));
             for(int times = 0; times < pow; ++times)
                 ret *= base;
             return ret;
         } else {
-            return apli_evaluate_node(vector_get(node.children, 1));
+            return apli_eval_child(2);
         }
         
     }
@@ -126,10 +126,10 @@ char *add_pre_post_buffer(const char *str, size_t buffer_size) {
     return cpy;
 }
 
-static inline int NUMBER_token_to_int(_token_t number) {
+static inline int NUM_to_int(ApliToken number) {
     char buf[20];
-    for(size_t i = 0; i < number.length; ++i)
-        buf[i] = number.ptr[i];
+    for(size_t i = 0; i < apli_token_reflen(number); ++i)
+        buf[i] = apli_token_ref(number)[i];
     buf[number.length] = '\0';
     return atoi(buf);
 }
