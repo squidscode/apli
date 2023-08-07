@@ -22,19 +22,19 @@
  *
  */
 
-#define Terminal                                    _terminal_t
-#define terminal_from(name)                         (_terminal_from(1, (name), strlen((name))))
-#define non_terminal_from(name)                     (_terminal_from(0, (name), strlen((name))))
-#define terminal_from_segment(name, length)         (_terminal_from(1, (name), (length)))
-#define non_terminal_from_segment(name, length)     (_terminal_from(0, (name), (length)))
+#define Terminal                                            _terminal_t
+#define terminal_from(name)                                 (_terminal_from(1, (name), strlen((name))))
+#define non_terminal_from(name)                             (_terminal_from(0, (name), strlen((name))))
+#define terminal_from_segment(name, length)                 (_terminal_from(1, (name), (length)))
+#define non_terminal_from_segment(name, length)             (_terminal_from(0, (name), (length)))
 #define EbnfRules                                           _ebnf_rules_t
 #define ebnf_rules_new()                                    (_ebnf_rules_new())
 #define ebnf_rules_add_rule(ebnf_rules, ebnf_rule)          (_ebnf_rules_fn_impl._add_rule((ebnf_rules), (ebnf_rule)))
 #define ebnf_rules_construct_parse_tree(ebnf_rules, tokens) (_ebnf_rules_fn_impl._construct_parse_tree((ebnf_rules), (tokens)))
-#define ebnf_rule_from(lhs, ...)                    (_ebnf_rule_from((lhs), PP_NARG(__VA_ARGS__), __VA_ARGS__))
-#define ebnf_rule_from_vector(lhs, rule_vec)        (_ebnf_rule_from_vec((lhs), (rule_vec)))
-#define min(x,y)                                    (((x) < (y)) ? (x) : (y))
-#define max(x,y)                                    (((x) < (y)) ? (y) : (x))
+#define ebnf_rule_from(lhs, ...)                            (_ebnf_rule_from((lhs), PP_NARG(__VA_ARGS__), __VA_ARGS__))
+#define ebnf_rule_from_vector(lhs, rule_vec)                (_ebnf_rule_from_vec((lhs), (rule_vec)))
+#define min(x,y)                                            (((x) < (y)) ? (x) : (y))
+#define max(x,y)                                            (((x) < (y)) ? (y) : (x))
 
 // Marco magic! This macro is not mine, it's from stackoverflow
 #define PP_NARG(...) \
@@ -88,6 +88,8 @@ _terminal_t _terminal_from(char is_terminal, const char *name, size_t name_lengt
     return term;
 }
 
+// TODO Remove name_length from here so that it is easier to write the evaluator.
+
 define_vector(_terminal_t);
 
 struct _ebnf_rule_ {
@@ -135,7 +137,7 @@ typedef struct _parse_tree_ _parse_tree_t;
 struct _ebnf_rules_fn_ {
     _ebnf_rules_t* (*_new)();
     void (*_add_rule)(_ebnf_rules_t*, _ebnf_rule_t);
-    _parse_tree_t* (*_construct_parse_tree)(_ebnf_rules_t*, List(_token_t)*);
+    _parse_tree_t (*_construct_parse_tree)(_ebnf_rules_t*, List(_token_t)*);
 };
 typedef struct _ebnf_rules_fn_ _ebnf_rules_fn_t;
 
@@ -147,7 +149,7 @@ static size_t _ebnf_rule_index_of_left_most_difference(_ebnf_rule_t rule1, _ebnf
 static size_t _terminal_equals(_terminal_t terminal1, _terminal_t terminal2);
 static _terminal_tree_t *_ebnf_rules_construct_terminal_tree(_ebnf_rules_t*, size_t);
 void _print_terminal(_terminal_t term);
-_parse_tree_t *_ebnf_rules_shift_reduce_parse(_ebnf_rules_t*, List(_token_t)*, _terminal_tree_t*, size_t);
+_parse_tree_t _ebnf_rules_shift_reduce_parse(_ebnf_rules_t*, List(_token_t)*, _terminal_tree_t*, size_t);
 
 EbnfRules* _ebnf_rules_new() {
     EbnfRules *ebnf_rules = (EbnfRules*) malloc(sizeof(EbnfRules));
@@ -178,11 +180,11 @@ _ebnf_rule_t _ebnf_rule_from(_terminal_t lhs, size_t num_va_args, ...) {
 #define print_ebnf_rules_terminal_tree(tt, lh)      _print_ebnf_rules_terminal_tree(tt, lh, 0)
 void _print_ebnf_rules_terminal_tree(_terminal_tree_t *, size_t, size_t);
 
-_parse_tree_t *_ebnf_construct_parse_tree(_ebnf_rules_t *rules, List(_token_t) *token_list) {
+_parse_tree_t _ebnf_construct_parse_tree(_ebnf_rules_t *rules, List(_token_t) *token_list) {
     size_t minimum_lookahead = _ebnf_rules_find_minimum_lookahead(rules);
     _terminal_tree_t *terminal_tree = _ebnf_rules_construct_terminal_tree(rules, minimum_lookahead);
     // begin shift-reduce with terminal_tree:
-    print_ebnf_rules_terminal_tree(terminal_tree, minimum_lookahead);
+    // print_ebnf_rules_terminal_tree(terminal_tree, minimum_lookahead);
     return _ebnf_rules_shift_reduce_parse(rules, token_list, terminal_tree, minimum_lookahead);
 }
 
@@ -337,23 +339,26 @@ static inline char _parser_reduce(Vector(_parse_tree_node_t)*, _ebnf_rules_t*);
 static inline void _parser_print_parse_tree_node_vector(Vector(_parse_tree_node_t)*);
 static inline void _parser_print_token_list(List(_token_t)*);
 static inline void _parser_print_parsing_step(Vector(_parse_tree_node_t) *parse_stack, List(_token_t) *look_ahead_list,
-    List(_token_t) *token_list);
+    List(_token_t) *token_list, size_t step_number);
 
-_parse_tree_t *_ebnf_rules_shift_reduce_parse(_ebnf_rules_t *rules, List(_token_t) *token_list, _terminal_tree_t *tree, size_t look_ahead) {
+_parse_tree_t _ebnf_rules_shift_reduce_parse(_ebnf_rules_t *rules, List(_token_t) *token_list, _terminal_tree_t *tree, size_t look_ahead) {
     Vector(_parse_tree_node_t) *parse_stack = vector_new(_parse_tree_node_t);
     List(_token_t) *look_ahead_list = list_new(_token_t);
+    size_t step_number = 1;
 
     if(0 == list_size(token_list))
-        return NULL;
+        assert(0 == "Parser error!");
 
     // To begin, we fill the look_ahead list, shift, then fill look_ahead again.
     _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead);
     _parser_shift(parse_stack, look_ahead_list);
-    _parser_print_parsing_step(parse_stack, look_ahead_list, token_list);
+    // _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
+    step_number += 1;
     _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead);
 
     while(0 < list_size(token_list) || 0 < list_size(look_ahead_list)) {
-        _parser_print_parsing_step(parse_stack, look_ahead_list, token_list);
+        // _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
+        step_number += 1;
         if(_parser_shift_condition(parse_stack, look_ahead_list, tree, look_ahead)) {
             _parser_shift(parse_stack, look_ahead_list);
             _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead);
@@ -365,15 +370,21 @@ _parse_tree_t *_ebnf_rules_shift_reduce_parse(_ebnf_rules_t *rules, List(_token_
         }
     }
 
-    // keep trying to reduce.
+    // Keep reducing.
     while(0 == _parser_reduce(parse_stack, rules)) {
-        _parser_print_parsing_step(parse_stack, look_ahead_list, token_list);
+        // _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number++);
+        step_number += 1;
     }
+
+    // NOTE: Uncomment to display the parse_tree. 
+    // _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
 
     list_free(look_ahead_list);
     if(1 != vector_size(parse_stack))
         assert(0 == "Parser error!");
-    return NULL;
+    _parse_tree_t parse_tree = {vector_get_back(parse_stack)};
+    vector_free(parse_stack);
+    return parse_tree;
 }
 
 #define FGREEN  "\x1b[32;1m"
@@ -385,14 +396,12 @@ _parse_tree_t *_ebnf_rules_shift_reduce_parse(_ebnf_rules_t *rules, List(_token_
 #define FRED  "\x1b[31;1m"
 #define RESET "\x1b[0m"
 
-static size_t STEP_NUMBER = 1;
 static inline void _parser_print_parsing_step(Vector(_parse_tree_node_t) *parse_stack, List(_token_t) *look_ahead_list,
-    List(_token_t) *token_list) {
-    printf(FBLUE "----------- STEP #%zu -----------" RESET, STEP_NUMBER++);
+    List(_token_t) *token_list, size_t step_number) {
+    printf(FBLUE "----------- STEP #%zu -----------" RESET, step_number);
     printf("\n\n" FRED "Parse Stack: " RESET "\n");
     _parser_print_parse_tree_node_vector(parse_stack);
-    printf("\n");
-    printf(FRED "Look ahead list: " RESET);
+    printf(FRED "Look-ahead list: " RESET);
     _parser_print_token_list(look_ahead_list);
     printf("\n" FRED "Tokens: " RESET);
     _parser_print_token_list(token_list);
@@ -537,7 +546,7 @@ static inline void _parser_print_parse_tree_node_vector_helper(Vector(_parse_tre
     size_t size = vector_size(tree);
     for(size_t i = 0; i < size; ++i) {
         for(size_t indent_level = 0; indent_level < indent; ++indent_level)
-            printf("    ");
+            printf("|   ");
         _parse_tree_node_t node = vector_get(tree, i);
         _parser_print_parse_tree_value(node.root);
         printf("\n");
@@ -546,17 +555,17 @@ static inline void _parser_print_parse_tree_node_vector_helper(Vector(_parse_tre
 }
 
 static inline void _parser_print_parse_tree_value(_parse_tree_value_t value) {
-    printf("[");
+    printf("<");
     if(value.is_terminal_t) {
-        printf(value.ptr.terminal.is_terminal ? "TERM" : "NON_TERM");
-        printf(" ");
+        // printf(value.ptr.terminal.is_terminal ? "TERM" : "NON_TERM");
+        // printf(" ");
         for(size_t i = 0; i < value.ptr.terminal.name_length; ++i) {
             printf("%c", value.ptr.terminal.name[i]);
         }
     } else {
         _parser_print_token(value.ptr.token);
     }
-    printf("]");
+    printf(">");
 }
 
 static inline void _parser_print_token_list(List(_token_t) *tokens) {

@@ -41,7 +41,7 @@ List(_token_t)* _token_rules_tokenize(TokenRules *tr, const char *input) {
     size_t size = vector_size(tr->rules);
     for(size_t i = 0; i < size; ++i) {
         vector_set(matches, i, regex_find_all(vector_get(tr->rules, i).regex, input));
-        printf("Finished lexing! %zu/%zu\n", i + 1, size);
+        // printf("Finished lexing! %zu/%zu\n", i + 1, size);
     }
     List(_token_t) *tokens = list_new(_token_t); size_t min_beginning = 0;
     while(_token_rules_matches_vector_has_matches(matches)) {

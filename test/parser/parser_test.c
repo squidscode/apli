@@ -75,11 +75,12 @@ int main() {
     token_rules_add_rule(tr, "CLOSE_PAREN", "\\)");
     token_rules_compile(tr);
 
-    // ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1"));
-    // ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 - 1"));
-    // ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 * 1"));
-    // ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 / 1"));
-    // ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1"));
-    // ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1*2"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1 / 5 + 3*2"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 - 1"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 * 1"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 / 1"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1*2"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1 * 5 + 3*2"));
+    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1 + 1 + 1 + 1"));
 }
