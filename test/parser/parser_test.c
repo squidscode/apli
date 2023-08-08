@@ -3,7 +3,7 @@
 
 /*
 
-<ebnf> "Arithmetic Expressions" {
+<bnf> "Arithmetic Expressions" {
 expression = term  { ("+" | "-") term} .
 ... expression = term
 ... expression = term ("+" | "-") term
@@ -12,7 +12,7 @@ term       = factor  { ("*"|"/") factor} .
 ... term = factor ("*" | "/") factor
 factor     = number | variable | "("  expression  ")" .
 number     = r" [123456789][0123456789]* "
-} </ebnf>
+} </bnf>
 
 */
 
@@ -37,21 +37,21 @@ int main() {
      * <factor> := NUMBER | '(' <expression> ')'
      *
      */
-    EbnfRules *arithmetic_rules = ebnf_rules_new();
+    BnfRules *arithmetic_rules = bnf_rules_new();
 
     // Expression (multiple terms separated by '+' or '-') rules:
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(expression, term));
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(expression, expression, plus, term));
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(expression, expression, minus, term));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(expression, term));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(expression, expression, plus, term));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(expression, expression, minus, term));
 
     // Term (multiple factors separated by '*' or '/') rules:
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(term, factor));
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(term, term, multi, factor));
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(term, term, div, factor));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(term, factor));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(term, term, multi, factor));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(term, term, div, factor));
 
     // Factor (a number or a group -- defined as an '(' <expr> ')') rules:
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(factor, number));
-    ebnf_rules_add_rule(arithmetic_rules, ebnf_rule_from(factor, open_paren, expression, close_paren));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(factor, number));
+    bnf_rules_add_rule(arithmetic_rules, bnf_rule_from(factor, open_paren, expression, close_paren));
 
     /**
      * - TOKENS: 
@@ -75,12 +75,12 @@ int main() {
     token_rules_add_rule(tr, "CLOSE_PAREN", "\\)");
     token_rules_compile(tr);
 
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 - 1"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 * 1"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 / 1"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1*2"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1 * 5 + 3*2"));
-    ebnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1 + 1 + 1 + 1"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 - 1"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 * 1"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 / 1"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1*2"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "(1 + 1) / 1 * 5 + 3*2"));
+    bnf_rules_construct_parse_tree(arithmetic_rules, token_rules_tokenize(tr, "1 + 1 + 1 + 1 + 1"));
 }

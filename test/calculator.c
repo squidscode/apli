@@ -8,7 +8,7 @@
  * <expr>   := <expr> ('+' | '-') <term>
  * <term>   := <factor>
  * <term>   := <term> ('*' | '/') <factor>
- * <factor> := NUMBER | '(' <expression> ')'
+ * <factor> := NUMBER | '(' <expression> ')' | <factor> '^' NUMBER
  */
 
 apli_init();
@@ -19,7 +19,7 @@ char *add_pre_post_buffer(const char *str, size_t buffer_size);
 __APLI_START__
 
     if(2 != argc)
-        assert(0 == "The second argument must be the mathematical expression");
+        assert(0 == "The second argument must be the arithmetic expression");
 
     apli_non_terminals(expr, term, factor);
     apli_terminals(NUMBER, PLUS, MINUS, STAR, FORWARD_SLASH, OPEN_PAREN, CLOSE_PAREN, CARROT);
@@ -38,17 +38,17 @@ __APLI_START__
     );
     apli_regex_compile();
 
-    apli_ebnf_rule(expr, term);
-    apli_ebnf_rule(expr, expr, PLUS, term);
-    apli_ebnf_rule(expr, expr, MINUS, term);
+    apli_bnf_rule(expr, term);
+    apli_bnf_rule(expr, expr, PLUS, term);
+    apli_bnf_rule(expr, expr, MINUS, term);
 
-    apli_ebnf_rule(term, factor);
-    apli_ebnf_rule(term, term, STAR, factor);
-    apli_ebnf_rule(term, term, FORWARD_SLASH, factor);
+    apli_bnf_rule(term, factor);
+    apli_bnf_rule(term, term, STAR, factor);
+    apli_bnf_rule(term, term, FORWARD_SLASH, factor);
 
-    apli_ebnf_rule(factor, NUMBER);
-    apli_ebnf_rule(factor, factor, CARROT, NUMBER);
-    apli_ebnf_rule(factor, OPEN_PAREN, expr, CLOSE_PAREN);
+    apli_bnf_rule(factor, NUMBER);
+    apli_bnf_rule(factor, factor, CARROT, NUMBER);
+    apli_bnf_rule(factor, OPEN_PAREN, expr, CLOSE_PAREN);
 
     char *input = add_pre_post_buffer(argv[1], 10);
     printf("%i\n", apli_evaluate(input));
@@ -60,7 +60,7 @@ __APLI_END__
 apli_function(expr) {
     size_t sz = apli_num_children();
     if(1 == sz)
-        return apli_evaluate_node(vector_get(node.children, 0));
+        return apli_eval_child(1);
     else if(3 == sz) {
         if(apli_child_token_name_equals(PLUS, 2))
             return apli_eval_child(1) + apli_eval_child(3);

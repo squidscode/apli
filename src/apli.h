@@ -9,7 +9,7 @@
  * to construct a compiler / interpreter. 
  *
  * The user will write apli_functions in order to create "evaluation hooks" for 
- * specific EBNF shapes.
+ * specific BNF shapes.
  *
  *
  */
@@ -18,8 +18,8 @@
 #define apli_function(lhs_terminal_name) \
     apli_return_type _apli_##lhs_terminal_name##_eval_hook(_parse_tree_node_t node)
 #define apli_fn(lhs_terminal_name)      apli_function(lhs_terminal_name)
-#define apli_ebnf_rule(lhs_terminal_name, ...) \
-    ebnf_rules_add_rule(ebnf_rules, ebnf_rule_from(lhs_terminal_name, __VA_ARGS__))
+#define apli_bnf_rule(lhs_terminal_name, ...) \
+    bnf_rules_add_rule(bnf_rules, bnf_rule_from(lhs_terminal_name, __VA_ARGS__))
 #define STR_BUFFER_SIZE 100
 
 #define apli_define_non_terminal(name) \
@@ -51,7 +51,7 @@
         apli_main_init();
 
 #define apli_main_init() \
-    EbnfRules *ebnf_rules = ebnf_rules_new(); \
+    BnfRules *bnf_rules = bnf_rules_new(); \
     TokenRules *token_rules = token_rules_new(); \
     _parse_tree_t parse_tree_result; \
     eval_fns = map_new(apli_function_name, apli_function_reference); \
@@ -96,7 +96,7 @@ typedef const char* apli_function_name;
         : node.root.ptr.token.name)(node)
 
 #define apli_get_parse_tree(input) \
-    ebnf_rules_construct_parse_tree(ebnf_rules, token_rules_tokenize(token_rules, input))
+    bnf_rules_construct_parse_tree(bnf_rules, token_rules_tokenize(token_rules, input))
 
 #define apli_num_children() vector_size(node.children)
 #define apli_get_child(child_number) vector_get(node.children, child_number - 1)

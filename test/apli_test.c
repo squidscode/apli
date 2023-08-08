@@ -31,16 +31,16 @@ __APLI_START__
     );
     apli_regex_compile();
 
-    apli_ebnf_rule(expr, term);
-    apli_ebnf_rule(expr, expr, PLUS, term);
-    apli_ebnf_rule(expr, expr, MINUS, term);
+    apli_bnf_rule(expr, term);
+    apli_bnf_rule(expr, expr, PLUS, term);
+    apli_bnf_rule(expr, expr, MINUS, term);
 
-    apli_ebnf_rule(term, factor);
-    apli_ebnf_rule(term, term, STAR, factor);
-    apli_ebnf_rule(term, term, FORWARD_SLASH, factor);
+    apli_bnf_rule(term, factor);
+    apli_bnf_rule(term, term, STAR, factor);
+    apli_bnf_rule(term, term, FORWARD_SLASH, factor);
 
-    apli_ebnf_rule(factor, NUMBER);
-    apli_ebnf_rule(factor, OPEN_PAREN, expr, CLOSE_PAREN);
+    apli_bnf_rule(factor, NUMBER);
+    apli_bnf_rule(factor, OPEN_PAREN, expr, CLOSE_PAREN);
 
     // parse_tree_result = apli_get_parse_tree("(1 + 1) / 1 * 5 + 3*2 + 5 + 4 / 2");
 
