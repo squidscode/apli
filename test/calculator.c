@@ -31,7 +31,7 @@ __APLI_START__
         (PLUS, "\\+"),
         (MINUS, "-"),
         (STAR, "\\*"),
-        (CARROT, "\\^"),
+        (CARROT, "\\^"), // CARROT?
         (FORWARD_SLASH, "/"),
         (OPEN_PAREN, "\\("),
         (CLOSE_PAREN, "\\)")
