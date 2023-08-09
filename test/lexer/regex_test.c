@@ -202,6 +202,50 @@ int main() {
     assertTrue(0 == regex_run(repeat_regex, "efwkknfej"));
     regex_free(repeat_regex);
 
+    Regex *span = regex_from("^[a-z]$");
+    regex_compile(span);
+    assertTrue(0 == regex_run(span, "1"));
+    assertTrue(0 == regex_run(span, "2"));
+    assertTrue(0 == regex_run(span, "3"));
+    assertTrue(0 == regex_run(span, "4"));
+    assertTrue(0 == regex_run(span, "5"));
+    assertTrue(0 == regex_run(span, "6"));
+    assertTrue(0 == regex_run(span, "7"));
+    assertTrue(0 == regex_run(span, "8"));
+    assertTrue(0 == regex_run(span, "9"));
+    assertTrue(0 == regex_run(span, "A"));
+    assertTrue(0 == regex_run(span, "`"));
+    assertTrue(0 == regex_run(span, "{"));
+    assertTrue(1 == regex_run(span, "a"));
+    assertTrue(1 == regex_run(span, "b"));
+    assertTrue(1 == regex_run(span, "l"));
+    assertTrue(1 == regex_run(span, "s"));
+    assertTrue(1 == regex_run(span, "z"));
+    regex_free(span);
+
+    span = regex_from("^[^a-z]$");
+    regex_compile(span);
+    assertTrue(1 == regex_run(span, "1"));
+    assertTrue(1 == regex_run(span, "2"));
+    assertTrue(1 == regex_run(span, "3"));
+    assertTrue(1 == regex_run(span, "4"));
+    assertTrue(1 == regex_run(span, "5"));
+    assertTrue(1 == regex_run(span, "6"));
+    assertTrue(1 == regex_run(span, "7"));
+    assertTrue(1 == regex_run(span, "8"));
+    assertTrue(1 == regex_run(span, "9"));
+    assertTrue(1 == regex_run(span, "A"));
+    assertTrue(1 == regex_run(span, "`"));
+    assertTrue(1 == regex_run(span, "{"));
+    assertTrue(0 == regex_run(span, "a"));
+    assertTrue(0 == regex_run(span, "b"));
+    assertTrue(0 == regex_run(span, "l"));
+    assertTrue(0 == regex_run(span, "s"));
+    assertTrue(0 == regex_run(span, "z"));
+    regex_free(span);
+
+    exit(0);
+
     // FOR FUN!
     const char *contents = ftoca("./src/lexer/regex.c");
     Regex *string_regex = regex_from("[^\\]\"[^\n]*[^\\]\"");

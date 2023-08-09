@@ -333,9 +333,23 @@ size_t _regex_expand_token(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
             inverted_flag = 1;
             _regex_add_all_alphabet_transitions_between(nfa, begin_expansion_state, begin_expansion_state + 1);
         }
-        for(size_t ind = start_index; ind < raw_regex_size - 1; ++ind) {
-            inverted_flag ? nfa_remove_transition(nfa, begin_expansion_state, raw_regex[ind], begin_expansion_state + 1) : 
-                            nfa_add_transition(nfa, begin_expansion_state, raw_regex[ind], begin_expansion_state + 1);
+        size_t end_index = raw_regex_size - 1;
+        for(size_t ind = start_index; ind < end_index; ++ind) {
+            if(ind + 2 < end_index && '\\' != raw_regex[ind] && '-' == raw_regex[ind+1]) {
+                // Indicates a character span
+                char start = raw_regex[ind];
+                char end = raw_regex[ind+2];
+                if(end < start)
+                    assert(0 == "Invalid character span (end_char < start_char)");
+                for(char c = start; c <= end; ++c)
+                    inverted_flag ? nfa_remove_transition(nfa, begin_expansion_state, c, begin_expansion_state + 1) : 
+                                    nfa_add_transition(nfa, begin_expansion_state, c, begin_expansion_state + 1);
+                ind += 2; // we have processed raw_regex[ind + 2]
+            } else {
+                // No character span
+                inverted_flag ? nfa_remove_transition(nfa, begin_expansion_state, raw_regex[ind], begin_expansion_state + 1) : 
+                                nfa_add_transition(nfa, begin_expansion_state, raw_regex[ind], begin_expansion_state + 1);
+            }
         }
         return begin_expansion_state + 1;
     }

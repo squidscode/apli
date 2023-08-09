@@ -36,13 +36,14 @@
 #define STRINGIFY(str)          DEFER3(_STRINGIFY)(str)
 #define THIRD(a,b,c,...) c
 #define FORTH(a,b,c,d,...) d
-#define apli_define_regex(expr) \
+#define apli_define_regex_internal(expr) \
     DEFER2(IF_ELSE) (DEFER1(HAS_ARGS) DEFER1(_REST) DEFER1(_REST) expr) ( \
         token_rules_add_rule_offset(token_rules, STRINGIFY(DEFER3(FIRST) expr), DEFER3(THIRD) expr, DEFER3(FORTH) expr, DEFER3(SECOND) expr), \
         token_rules_add_rule(token_rules, STRINGIFY(DEFER3(FIRST) expr), DEFER3(SECOND) expr) \
     )
 
-#define apli_regex(...)             MAP(apli_define_regex, SEMI_COLON, __VA_ARGS__)
+#define apli_regex_rule(...)        EVAL(apli_define_regex_internal((__VA_ARGS__)))
+#define apli_regex(...)             MAP(apli_define_regex_internal, SEMI_COLON, __VA_ARGS__)
 
 #define apli_regex_compile()        token_rules_compile(token_rules)
 
@@ -57,7 +58,11 @@
     eval_fns = map_new(apli_function_name, apli_function_reference); \
     map_set_key_eq(eval_fns, &str_eq); \
     map_set_hash(eval_fns, &str_hash); \
+    parser_type parser_type_inst = LEFT_TO_RIGHT; \
     char buf[STR_BUFFER_SIZE]
+
+#define apli_set_parser_type(type) \
+    parser_type_inst = type
 
 #define __APLI_END__              }
 
@@ -86,7 +91,7 @@ typedef const char* apli_function_name;
     Map(apli_function_name, apli_function_reference) *eval_fns
 
 #define apli_evaluate(input) \
-    (parse_tree_result = apli_get_parse_tree(input), \
+    (parse_tree_result = apli_get_parse_tree(input, parser_type_inst), \
      apli_evaluate_node(parse_tree_result.root))
 
 #define apli_evaluate_node(node) \
@@ -95,8 +100,8 @@ typedef const char* apli_function_name;
         ? (assert(node.root.ptr.terminal.name[node.root.ptr.terminal.name_length] == '\0'), node.root.ptr.terminal.name) \
         : node.root.ptr.token.name)(node)
 
-#define apli_get_parse_tree(input) \
-    bnf_rules_construct_parse_tree(bnf_rules, token_rules_tokenize(token_rules, input))
+#define apli_get_parse_tree(input, parser_type) \
+    bnf_rules_construct_parse_tree(bnf_rules, token_rules_tokenize(token_rules, input), parser_type)
 
 #define apli_num_children() vector_size(node.children)
 #define apli_get_child(child_number) vector_get(node.children, child_number - 1)
