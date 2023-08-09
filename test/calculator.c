@@ -1,6 +1,8 @@
 #include "../src/apli.h"
 
-#define apli_return_type int
+#define APLI_EVAL_ARGUMENTS
+#define APLI_EVAL_NAMES
+#define APLI_EVAL_RETURN_TYPE int
 
 /**
  * --- Arithmetic Rules ---

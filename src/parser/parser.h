@@ -36,7 +36,7 @@
 #define min(x,y)                                            (((x) < (y)) ? (x) : (y))
 #define max(x,y)                                            (((x) < (y)) ? (y) : (x))
 #define FOR_LOOP_DIRECTION_SWAP_IF(index_id, start, end, swap_condition) \
-    for(size_t index_id = (swap_condition ? end : start); (start <= index_id && index_id <= end); (swap_condition ? --index_id : ++index_id))
+    for(size_t index_id = ((swap_condition) ? (end) : (start)); ((start) <= (index_id) && (index_id) <= (end)); ((swap_condition) ? --index_id : ++index_id))
 
 // Marco magic! This macro is not mine, it's from stackoverflow
 #define PP_NARG(...) \

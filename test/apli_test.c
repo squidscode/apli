@@ -1,6 +1,9 @@
 #include "../src/apli.h"
 
-#define apli_return_type int
+
+#define APLI_EVAL_ARGUMENTS
+#define APLI_EVAL_NAMES
+#define APLI_EVAL_RETURN_TYPE int
 
 /**
  * --- Arithmetic Rules ---
@@ -46,9 +49,6 @@ __APLI_START__
 
     // printf("%i\n", apli_evaluate_node(parse_tree_result.root));
     printf("%i\n", apli_evaluate("(1 + 1) / 1 / 5 + 3*2 + 5 + 4 / 2"));
-    printf("%i\n", apli_evaluate("(1 + 1) / 1 * 5 + 3*2 + 5 + 4 / 2"));
-
-
 
 __APLI_END__
 

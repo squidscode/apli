@@ -1,6 +1,12 @@
 #include "../src/apli.h"
 
-#define apli_return_type int
+#define APLI_EVAL_ARGUMENTS     stack_frame stack
+#define APLI_EVAL_NAMES         stack
+#define APLI_EVAL_RETURN_TYPE   int
+
+typedef struct _stack_frame {
+    // Information that we wish to hold about the stack frame
+} stack_frame;
 
 /**
  * Reference: 
@@ -67,8 +73,8 @@ __APLI_START__
     apli_bnf_rule(atomic_symbol, ATOMIC_SYMBOL);
 
     char *input = add_pre_post_buffer(argv[1], 10);
-    apli_evaluate(input);
 
+    stack_frame stack;
     apli_evaluate(input);
 
     free(input);
@@ -76,19 +82,19 @@ __APLI_START__
 __APLI_END__
 
 apli_function(s_expressions) {
-    
+    return 0;
 }
 
 apli_function(s_expression) {
-
+    return 0;
 }
 
 apli_function(atomic_symbol) {
-
+    return 0;
 }
 
 apli_function(list) {
-
+    return 0;
 }
 
 char *add_pre_post_buffer(const char *str, size_t buffer_size) {

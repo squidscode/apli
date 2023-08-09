@@ -11,12 +11,22 @@
  * The user will write apli_functions in order to create "evaluation hooks" for 
  * specific BNF shapes.
  *
- *
- */
+  */
 
+#define APLI_EVAL_ARGUMENTS_INTERNAL() \
+    IF_ELSE(DEFER1(HAS_ARGS)(APLI_EVAL_ARGUMENTS))( \
+        COMMA() APLI_EVAL_ARGUMENTS, \
+        EMPTY() \
+    )
+
+#define APLI_EVAL_NAMES_INTERNAL() \
+    IF_ELSE(DEFER1(HAS_ARGS)(APLI_EVAL_NAMES))( \
+        COMMA() APLI_EVAL_NAMES, \
+        EMPTY() \
+    )
 
 #define apli_function(lhs_terminal_name) \
-    apli_return_type _apli_##lhs_terminal_name##_eval_hook(_parse_tree_node_t node)
+    APLI_EVAL_RETURN_TYPE _apli_##lhs_terminal_name##_eval_hook(_parse_tree_node_t node APLI_EVAL_ARGUMENTS_INTERNAL())
 #define apli_fn(lhs_terminal_name)      apli_function(lhs_terminal_name)
 #define apli_bnf_rule(lhs_terminal_name, ...) \
     bnf_rules_add_rule(bnf_rules, bnf_rule_from(lhs_terminal_name, __VA_ARGS__))
@@ -86,29 +96,42 @@ size_t str_hash(const char* str) {
 
 typedef const char* apli_function_name;
 #define apli_init() \
-    typedef apli_return_type (*apli_function_reference)(_parse_tree_node_t); \
+    typedef APLI_EVAL_RETURN_TYPE (*apli_function_reference)(_parse_tree_node_t node APLI_EVAL_ARGUMENTS_INTERNAL()); \
     define_map(apli_function_name, apli_function_reference); \
     Map(apli_function_name, apli_function_reference) *eval_fns
 
 #define apli_evaluate(input) \
-    (parse_tree_result = apli_get_parse_tree(input, parser_type_inst), \
+    (parse_tree_result = apli_get_parse_tree((input), parser_type_inst), \
      apli_evaluate_node(parse_tree_result.root))
 
 #define apli_evaluate_node(node) \
     map_at(eval_fns, \
         node.root.is_terminal_t \
         ? (assert(node.root.ptr.terminal.name[node.root.ptr.terminal.name_length] == '\0'), node.root.ptr.terminal.name) \
-        : node.root.ptr.token.name)(node)
+        : node.root.ptr.token.name)((node) APLI_EVAL_NAMES_INTERNAL())
+
+#define apli_evaluate_args(input, ...) \
+    (parse_tree_result = apli_get_parse_tree((input), parser_type_inst), \
+     apli_evaluate_node_args(parse_tree_result.root, __VA_ARGS__))
+
+#define apli_evaluate_node_args(node, ...) \
+    map_at(eval_fns, \
+        node.root.is_terminal_t \
+        ? (assert(node.root.ptr.terminal.name[node.root.ptr.terminal.name_length] == '\0'), node.root.ptr.terminal.name) \
+        : node.root.ptr.token.name)((node), __VA_ARGS__)
 
 #define apli_get_parse_tree(input, parser_type) \
-    bnf_rules_construct_parse_tree(bnf_rules, token_rules_tokenize(token_rules, input), parser_type)
+    bnf_rules_construct_parse_tree(bnf_rules, token_rules_tokenize(token_rules, (input)), (parser_type))
 
 #define apli_num_children() vector_size(node.children)
-#define apli_get_child(child_number) vector_get(node.children, child_number - 1)
+#define apli_get_child(child_number) vector_get(node.children, ((child_number) - 1))
 #define apli_get_child_token(child_number) apli_get_child(child_number).root.ptr.token
+#define apli_get_child_terminal(child_number) apli_get_child(child_number).root.ptr.terminals
 #define apli_eval_child(child_number) apli_evaluate_node(apli_get_child(child_number))
 #define apli_child_token_name_equals(token_id, child_number) \
     (0 == apli_get_child(child_number).root.is_terminal_t && 0 == strcmp(#token_id, apli_get_child_token(child_number).name))
+#define apli_child_terminal_name_equals(terminal_id, child_number) \
+    (1 == apli_get_child(child_number).root.is_terminal_t && 0 == strcmp(#terminal_id, apli_get_child_terminal(child_number).name))
 #define ApliToken _token_t
 #define apli_token_name(token) token.name
 #define apli_token_ref(token) token.ptr
