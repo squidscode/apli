@@ -13,8 +13,10 @@
             (cbf low) 
             (loop (+ low 1) high cbf))))
 
-(loop 1 10
+(loop 1 25
     (lambda (i) 
         (progn
+            (print i)
+            (print "\t")
             (print (fib i))
             (print "\n"))))
