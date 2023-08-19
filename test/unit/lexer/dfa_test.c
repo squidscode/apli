@@ -1,5 +1,5 @@
 #include "../testlib/testlib.h"
-#include "../../src/lexer/dfa.h"
+#include "../../../src/lexer/dfa.h"
 
 define_list(int);
 define_list(char);

@@ -1,5 +1,5 @@
 #include "../testlib/testlib.h"
-#include "../../src/util/set.h"
+#include "../../../src/util/set.h"
 
 define_list(int);
 define_set(int);

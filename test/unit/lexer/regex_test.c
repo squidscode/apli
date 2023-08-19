@@ -1,4 +1,4 @@
-#include "../../src/lexer/regex.h"
+#include "../../../src/lexer/regex.h"
 #include "../testlib/testlib.h"
 #include <stdio.h>
 

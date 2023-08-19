@@ -87,7 +87,7 @@
         /* A CHAR CAST! Gasp! DO NOT port hash values produced by this function \
            the endian-ness of the machine MATTERS (because of the mod)! */ \
         char *ptr = (char*) ((void*) &key); \
-        size_t hash = 0; \
+        size_t hash = 0UL; \
         for(size_t i = 0; i < size; ++i) { \
             hash ^= ((255UL & ptr[i]) << (8 * offset++)); \
             offset %= mod; \
@@ -109,6 +109,7 @@
     /* Allocates the (hash, key, value) into the appropriate bucket in the map. */ \
     void _allocate_into_bucket_##key_type##_##value_type##_map_(_##key_type##_##value_type##_map_t *map, \
         size_t key_hash, key_type key, value_type val) { \
+        /* printf("hash: %zu\n", key_hash); */ \
         size_t mask = (vector_size(map->buckets) - 1); \
         _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, (key_hash & mask)); \
         if(bucket == NULL) { \
@@ -192,10 +193,15 @@
         Iterator(_##key_type##_##value_type##_map_match_t) *iter = list_get_iterator(bucket); \
         while(iter != NULL) { \
             _##key_type##_##value_type##_map_match_t match = iter_val(iter); \
+            /* if(#key_type[0] == 'i') { \
+                printf("match.hash{%zu} == key_hash{%zu} IS %d\n", match.hash, key_hash, match.hash == key_hash); \
+                printf("map->key_eq(match.key, key) IS %zu\n", map->key_eq(match.key, key)); \
+            } */ \
             if(match.hash == key_hash && map->key_eq(match.key, key)) \
                 return 1; \
             iter = iter_next(iter); \
         } \
+        /* printf("map_count returning 0\n"); */ \
         return 0; \
     } \
     \
@@ -206,13 +212,14 @@
     Map(key_type, value_type)* _##key_type##_##value_type##_map_clone_(Map(key_type, value_type) *map) { \
         List(_##key_type##_##value_type##_map_match_t) *map_list = map_get_list(map); \
         Map(key_type, value_type) *new_map = map_new(key_type, value_type); \
+        new_map->hash = map->hash; \
+        new_map->key_eq = map->key_eq; \
         while(0 < list_size(map_list)) { \
             _##key_type##_##value_type##_map_match_t nxt_match = list_get_front(map_list); \
             map_insert(new_map, nxt_match.key, nxt_match.value); \
+            list_pop_front(map_list); \
         } \
         list_free(map_list); \
-        new_map->hash = map->hash; \
-        new_map->key_eq = map->key_eq; \
         return new_map; \
     } \
     \

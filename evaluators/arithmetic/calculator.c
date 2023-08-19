@@ -1,4 +1,4 @@
-#include "../src/apli.h"
+#include "../../src/apli.h"
 
 #define APLI_EVAL_ARGUMENTS
 #define APLI_EVAL_NAMES

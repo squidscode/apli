@@ -1,7 +1,7 @@
 #include "../testlib/testlib.h"
 #include <stdio.h>
 #include <string.h>
-#include "../../src/lexer/lexer.h"
+#include "../../../src/lexer/lexer.h"
 
 const char* ftoca(const char* file_path);
 

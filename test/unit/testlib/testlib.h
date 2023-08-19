@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "../../src/util/map.h"
+#include "../../../src/util/map.h"
 
 /**
  * If `COLOR` is defined, then terminal colors are used.

@@ -1,4 +1,4 @@
-#include "../../src/lexer/nfa.h"
+#include "../../../src/lexer/nfa.h"
 #include "../testlib/testlib.h"
 
 define_list(size_t);

@@ -1,5 +1,5 @@
 #include "../testlib/testlib.h"
-#include "../../src/parser/parser.h"
+#include "../../../src/parser/parser.h"
 
 /*
 
