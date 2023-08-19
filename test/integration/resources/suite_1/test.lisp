@@ -1,22 +1,21 @@
-(defun x (y) (+ y 1))
-(print "Hello World!\n")
+(write-line "Hello World!")
 
 (defun fib (x)
     (if (= x 0) 0
     (if (= x 1) 1
     (+ (fib (- x 1)) (fib (- x 2))))))
 
-(defun loop (low high cbf)
-    (if (= low high)
-        (cbf low)
+(defun my-loop (low high call-back)
+    (if (= low high) 
+        (funcall call-back low)
         (progn 
-            (cbf low) 
-            (loop (+ low 1) high cbf))))
+            (funcall call-back low)
+            (my-loop (+ low 1) high call-back))))
 
-(loop 1 25
-    (lambda (i) 
-        (progn
-            (print i)
-            (print "\t")
-            (print (fib i))
-            (print "\n"))))
+(my-loop 1 20
+    (lambda (x)
+        (write x)
+        (write-string "    ")
+        (if (<= x 9) (write-string " ") 1)
+        (write (fib x))
+        (terpri)))

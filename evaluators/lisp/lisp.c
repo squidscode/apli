@@ -144,7 +144,7 @@ __APLI_START__
 
     apli_regex(
         (ATOMIC_SYMBOL, "[^\\]\"[^\n]*[^\\]\"", 1, 0),
-        (ATOMIC_SYMBOL, "[^a-z0-9][a-z0-9]+[^a-z0-9]", 1, 1),
+        (ATOMIC_SYMBOL, "[^a-z0-9\\-][a-z0-9\\-]+[^a-z0-9\\-]", 1, 1),
         (ATOMIC_SYMBOL, "(<=|>=)", 0, 0),
         (ATOMIC_SYMBOL, "([+-\\*/<>=])", 0, 0),
         (OPEN_PAREN, "\\("),
@@ -558,7 +558,22 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
             rv.ref.fun_v.arguments = identifier_vec;
 
             return rv;
-        } else if(seg_eq_str(id.ref.segment, "print")) {
+        } else if(seg_eq_str(id.ref.segment, "funcall")) {
+            ApliNode node = vector_get(children, 1);
+            ApliNode function_name = apli_node_get_child(apli_get_child(1), 1);
+            if(!apli_node_terminal_name_equals(function_name, atomic_symbol))
+                assert(0 == "Function name must be an atomic_symbol");
+            return_value function_name_rv = apli_evaluate_node(function_name);
+            return lisp_call(function_name_rv, node.children, env);
+        } else if(seg_eq_str(id.ref.segment, "terpri")) {
+            printf("\n"); // NOTE: Assume linux.
+            return_value one;
+            one.type = NUMBER;
+            one.ref.num = 1;
+            return one; 
+        } else if(seg_eq_str(id.ref.segment, "write")
+            || seg_eq_str(id.ref.segment, "write-string")
+            || seg_eq_str(id.ref.segment, "write-line")) {
             ApliNode node = vector_get(children, 1);
             return_value rv = apli_evaluate_node(node);
             if(NUMBER == rv.type) {
@@ -589,6 +604,8 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
                     }
                     printf("%c", seg.str[i]);
                 }
+                if(seg_eq_str(id.ref.segment, "write-line"))
+                    printf("\n");
                 return rv;
             } else {
                 printf("Cannot print invalid type "); print_return_type(rv);
