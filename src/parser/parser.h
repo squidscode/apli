@@ -188,7 +188,9 @@ _parse_tree_t _bnf_construct_parse_tree(_bnf_rules_t *rules, List(_token_t) *tok
     size_t minimum_lookahead = _bnf_rules_find_minimum_lookahead(rules, type);
     _terminal_tree_t *terminal_tree = _bnf_rules_construct_terminal_tree(rules, minimum_lookahead, type);
     // begin shift-reduce with terminal_tree:
-    // print_bnf_rules_terminal_tree(terminal_tree, minimum_lookahead);
+#ifdef PRINT_LOOK_AHEAD_TREE
+    print_bnf_rules_terminal_tree(terminal_tree, minimum_lookahead);
+#endif
     return _bnf_rules_shift_reduce_parse(rules, token_list, terminal_tree, minimum_lookahead, type);
 }
 
@@ -237,6 +239,7 @@ _terminal_t _terminal_tree_get_with_default_null(Vector(_terminal_t) *terminal_v
 static inline size_t _terminal_tree_key_hash(_terminal_t);
 static inline size_t _terminal_tree_key_equals(_terminal_t, _terminal_t);
 
+#define IF_RIGHT_TO_LEFT_REVERSE(j) ((RIGHT_TO_LEFT == type) ? (bnf_rule_size - 1 - j) : (j))
 _terminal_tree_t *_bnf_rules_construct_terminal_tree(_bnf_rules_t *bnf_rules, size_t num_terms, parser_type type) {
     size_t num_rules = vector_size(bnf_rules->rules);
     _terminal_tree_t *tree = map_new(_terminal_t, _void_ptr_);
@@ -244,23 +247,25 @@ _terminal_tree_t *_bnf_rules_construct_terminal_tree(_bnf_rules_t *bnf_rules, si
     map_set_key_eq(tree, &_terminal_tree_key_equals);
     for(size_t i = 0; i < num_rules; ++i) {
         _bnf_rule_t bnf_rule = vector_get(bnf_rules->rules, i);
+        size_t bnf_rule_size = vector_size(bnf_rule.rule);
         _terminal_tree_t *tree_ptr = tree;
-        FOR_LOOP_DIRECTION_SWAP_IF(j, 0, num_terms - 1, RIGHT_TO_LEFT == type) {
-            // printf("Adding terminal: "); _print_terminal(term_map_get(bnf_rule.rule, j));
+        // printf("---- RIGHT_TO_LEFT == type is {%d} ----\n", RIGHT_TO_LEFT == type);
+        for(size_t j = 0; j < num_terms; ++j) {
+            // printf("Adding terminal %zu: ", j); _print_terminal(term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(j)));
             // printf("\n");
-            if(0 == map_count(tree_ptr, term_map_get(bnf_rule.rule, j))) {
-                map_insert(tree_ptr, term_map_get(bnf_rule.rule, j), 
+            if(0 == map_count(tree_ptr, term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(j)))) {
+                map_insert(tree_ptr, term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(j)), 
                     map_new(_terminal_t, _void_ptr_));
-                tree_ptr = (_terminal_tree_t*) map_at(tree_ptr, term_map_get(bnf_rule.rule, j));
+                tree_ptr = (_terminal_tree_t*) map_at(tree_ptr, term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(j)));
             } else {
-                tree_ptr = (_terminal_tree_t*) map_at(tree_ptr, term_map_get(bnf_rule.rule, j));
+                tree_ptr = (_terminal_tree_t*) map_at(tree_ptr, term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(j)));
             }
             map_set_hash(tree_ptr, &_terminal_tree_key_hash);
             map_set_key_eq(tree_ptr, &_terminal_tree_key_equals);
         }
-        // printf("Adding terminal: "); _print_terminal(term_map_get(bnf_rule.rule, minimum_lookahead));
+        // printf("Adding terminal: "); _print_terminal(term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(num_terms)));
         // printf("\n");
-        map_insert(tree_ptr, term_map_get(bnf_rule.rule, num_terms), 
+        map_insert(tree_ptr, term_map_get(bnf_rule.rule, IF_RIGHT_TO_LEFT_REVERSE(num_terms)), 
             (void*) i); // potential bug, but we know that the # of rules won't reach the max int / long limit
         // printf("\n\n");
     }
@@ -486,7 +491,9 @@ static inline char _parser_shift_condition(Vector(_parse_tree_node_t) *parse_sta
         look_ahead_iter = iter_next(look_ahead_iter);
     }
 
-    // printf("Shift recommended! Rule #%zu can be enacted.\n", (size_t) tree_ptr);
+#ifdef PRINT_PARSE_TREE_STEPS
+    printf("Shift recommended! Rule #%zu can be enacted.\n", (size_t) tree_ptr);
+#endif
     return 1;
 }
 

@@ -22,6 +22,7 @@
  *   map_erase(map, key)                    -> size_t
  *   map_count(map, key)                    -> size_t
  *   map_size(map)                          -> size_t
+ *   map_clone(map)                         -> Map(T1, T2)*
  *   map_get_list(map)                      -> List(map_match)*
  *   ^^^ Use map_match.key and map_match.value to unpack the match
  *   map_free(map)                          -> void
@@ -36,6 +37,7 @@
 #define map_at(map, key)                            ((map)->fns->at((map), (key)))
 #define map_erase(map, key)                         ((map)->fns->erase((map), (key)))
 #define map_count(map, key)                         ((map)->fns->count((map), (key)))
+#define map_clone(map)                              ((map)->fns->clone((map)))
 #define map_size(map)                               ((map)->fns->size((map)))
 #define map_free(map)                               ((map)->fns->destroy((map)))
 #define map_get_list(map)                           ((map)->fns->get_list((map)))
@@ -60,6 +62,7 @@
         size_t (*erase)(struct _##key_type##_##value_type##_map_*, key_type); \
         size_t (*count)(struct _##key_type##_##value_type##_map_*, key_type); \
         size_t (*size)(struct _##key_type##_##value_type##_map_*); \
+        struct _##key_type##_##value_type##_map_* (*clone)(struct _##key_type##_##value_type##_map_*); \
         List(_##key_type##_##value_type##_map_match_t)* (*get_list)(struct _##key_type##_##value_type##_map_*); \
         void (*destroy)(struct _##key_type##_##value_type##_map_*); \
     } _##key_type##_##value_type##_map_fns_t; \
@@ -72,6 +75,9 @@
         size_t size; \
         _##key_type##_##value_type##_map_fns_t *fns; \
     } _##key_type##_##value_type##_map_t; \
+    \
+    /* Forward declaration of map_new */ \
+    _##key_type##_##value_type##_map_t* _##key_type##_##value_type##_new_map(); \
     \
     /* The default hash function for the map. */ \
     size_t _default_##key_type##_##value_type##_map_hash_(key_type key) { \
@@ -197,6 +203,19 @@
         return map->size; \
     } \
     \
+    Map(key_type, value_type)* _##key_type##_##value_type##_map_clone_(Map(key_type, value_type) *map) { \
+        List(_##key_type##_##value_type##_map_match_t) *map_list = map_get_list(map); \
+        Map(key_type, value_type) *new_map = map_new(key_type, value_type); \
+        while(0 < list_size(map_list)) { \
+            _##key_type##_##value_type##_map_match_t nxt_match = list_get_front(map_list); \
+            map_insert(new_map, nxt_match.key, nxt_match.value); \
+        } \
+        list_free(map_list); \
+        new_map->hash = map->hash; \
+        new_map->key_eq = map->key_eq; \
+        return new_map; \
+    } \
+    \
     List(_##key_type##_##value_type##_map_match_t)* _##key_type##_##value_type##_map_get_list_( \
         _##key_type##_##value_type##_map_t *map) { \
         List(_##key_type##_##value_type##_map_match_t)* matches = list_new(_##key_type##_##value_type##_map_match_t); \
@@ -230,6 +249,7 @@
         &_##key_type##_##value_type##_map_erase_, \
         &_##key_type##_##value_type##_map_count_, \
         &_##key_type##_##value_type##_map_size_, \
+        &_##key_type##_##value_type##_map_clone_, \
         &_##key_type##_##value_type##_map_get_list_, \
         &_##key_type##_##value_type##_map_free_, \
     }; \

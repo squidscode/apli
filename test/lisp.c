@@ -28,6 +28,7 @@
  * s_expression  := "(" s_expression "." s_expressison ")"
  * s_expression  := list
  * list          := "(" s_expressions ")"
+ * list          := "(" ")"
  * s_expressions := s_expression s_expressions       ** NOTICE: s_expressions == s_expression+
  * s_expressions := s_expression
  * atomic_symbol := r"[^a-z1-9][a-z1-9]+[^a-z1-9]" [OFFSET: +1 ; -1]
@@ -39,7 +40,26 @@ typedef struct _string_segment {
 } string_segment;
 
 typedef string_segment identifier;
-typedef enum _rv_type {NUMBER, IDENTIFIER} rv_type;
+typedef struct _return_value_type return_value;
+
+typedef struct _return_value_type return_value;
+typedef struct _identifier_return_value_map_ _identifier_return_value_map_t;
+typedef Map(identifier, return_value)* frame;
+typedef struct _frame_vector_ Vector(frame);
+typedef struct _identifier_vector_ Vector(identifier);
+
+typedef struct _environment {
+    Vector(frame) *stack_frame;
+} environment;
+
+typedef struct _function_value {
+    environment *closure;
+    ApliNode function_pointer;
+    Vector(identifier) *arguments;
+} function_value;
+
+// NONE is used as a placeholder for implementing recursively defined functions.
+typedef enum _rv_type {NUMBER, IDENTIFIER, FUNCTION} rv_type;
 /**
  * NUMBER -> ref is size_t
  * IDENTIFIER -> ref is string_segment
@@ -47,33 +67,36 @@ typedef enum _rv_type {NUMBER, IDENTIFIER} rv_type;
 typedef union _rv_data {
     int num;
     string_segment segment;
+    function_value fun_v;
 } rv_data;
-typedef struct _return_value {
+
+typedef struct _return_value_type {
     rv_type type;
     rv_data ref;
 } return_value;
 
-
 define_map(identifier, return_value);
-typedef Map(identifier, return_value)* frame;
 define_vector(frame);
-
-typedef struct _environment {
-    Vector(frame) *stack_frame;
-} environment;
+define_vector(identifier);
 
 #define resolve_id(env, id)         _resolve_identifier(env, id)
+#define env_new()                   _env_new()
+#define env_free(env)               _env_free(env)
 #define push_frame(env)             _push_frame(env)
 #define pop_frame(env)              _pop_frame(env)
 #define extend_env(env, id, val)    _extend_env(env, id, val)
+#define clone_env(env)              _clone_env(env)
 #define seg_to_str(seg)             _segment_to_str(seg)
 #define seg_eq_str(seg, str)            _segment_eq_str(seg, str)
 #define str_to_seg(str, len)        _str_to_segment(str, len)
 
 return_value _resolve_identifier(environment *env, string_segment id);
+environment *_env_new();
+void _env_free(environment *env);
 void _push_frame(environment *env);
 void _pop_frame(environment *env);
 void _extend_env(environment *env, string_segment id, return_value rv);
+environment *_clone_env(environment *env);
 
 const char *_segment_to_str(string_segment segment);
 string_segment _str_to_segment(const char* str, size_t len);
@@ -112,6 +135,7 @@ __APLI_START__
     apli_bnf_rule(s_expression, OPEN_PAREN, s_expression, PERIOD, s_expression, CLOSE_PAREN);
     apli_bnf_rule(s_expression, list);
     apli_bnf_rule(list, OPEN_PAREN, s_expressions, CLOSE_PAREN);
+    apli_bnf_rule(list, OPEN_PAREN, CLOSE_PAREN);
     apli_bnf_rule(s_expressions, s_expression);
     apli_bnf_rule(s_expressions, s_expression, s_expressions);
     // apli_bnf_rule(s_expressions, s_expressions, s_expressions); // this isn't needed because we go right->left
@@ -119,18 +143,29 @@ __APLI_START__
 
     char *input = add_pre_post_buffer(argv[1], 10);
 
-    environment *env = (environment*) malloc(sizeof(environment));
-    env->stack_frame = vector_new(frame);
+    environment *env = env_new();
     push_frame(env);
     print_return_value(apli_evaluate(input));
+    printf("\n");
 
-    pop_frame(env);
-    vector_free(env->stack_frame);
-    free(env);
+    env_free(env);
 
     free(input);
 
 __APLI_END__
+
+environment *_env_new() {
+    environment *env = (environment*) malloc(sizeof(environment));
+    env->stack_frame = vector_new(frame);
+    return env;
+}
+
+void _env_free(environment *env) {
+    while(vector_size(env->stack_frame))
+        pop_frame(env);
+    vector_free(env->stack_frame);
+    free(env);
+}
 
 apli_function(s_expressions) {
     // The first value in an s_expressions is always an s_expression.
@@ -150,6 +185,7 @@ apli_function(s_expression) {
         return apli_eval_child(1);
     } else if(apli_child_token_name_equals(OPEN_PAREN, 1)) {
         // s_expression = "(" s_expression "." s_expressison ")"
+        assert(0 == "Not implemented!");
     } else {
         // s_expression = list
         return apli_eval_child(1);
@@ -167,10 +203,11 @@ apli_function(atomic_symbol) {
         rv.ref.num = atoi(seg_to_str(segment));
         return rv;
     } else {
-        return_value rv;
-        rv.type = IDENTIFIER;
-        rv.ref.segment = segment;
-        return rv;
+        return resolve_id(env, segment);
+        // return_value rv;
+        // rv.type = IDENTIFIER;
+        // rv.ref.segment = segment;
+        // return rv;
     }
     
     assert(0 == "Not reachable");
@@ -180,9 +217,12 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
 
 apli_function(list) {
     // list          := "(" s_expressions ")"
-    ApliNode sexprs = apli_get_child(2);
-    return lisp_call(apli_evaluate_node(vector_get(sexprs.children, 0)), sexprs.children, env);
-    assert(0 == "Not reachable");
+    if(3 == apli_num_children()) {
+        ApliNode sexprs = apli_get_child(2);
+        return lisp_call(apli_evaluate_node(vector_get(sexprs.children, 0)), sexprs.children, env);
+    }
+    printf("Evaluating '()' is not possible!\n");
+    assert(0 == "Invalid evaluation state!");
 }
 
 char *add_pre_post_buffer(const char *str, size_t buffer_size) {
@@ -204,29 +244,44 @@ char *add_pre_post_buffer(const char *str, size_t buffer_size) {
 return_value _resolve_identifier(environment *env, string_segment id) {
     Vector(frame) *sf = env->stack_frame;
     size_t sz = vector_size(sf);
+    // printf("Stack size: %zu\n", sz);
     for(size_t i = sz - 1; i < sz; --i) {
+        // printf("Map size: %zu\n", map_size(vector_get(sf, i)));
         if(map_count(vector_get(sf, i), id)) {
             return map_at(vector_get(sf, i), id);
         }
     }
-    printf("Invalid Identifier Error! Identifier `%s` is not bound.\n", seg_to_str(id));
-    assert(0 == "Invalid identifier");
+    return_value rv;
+    rv.type = IDENTIFIER;
+    rv.ref.segment = id;
+    return rv;
+    // printf("Invalid Identifier Error! Identifier `%s` is not bound.\n", seg_to_str(id));
+    // assert(0 == "Invalid identifier");
 }
+
+#define print_string_segment(seg) \
+    printf("`"); \
+    for(size_t IND = 0; IND < seg.length; ++IND) { \
+        printf("%c", seg.str[IND]); \
+    } \
+    printf("`")
 
 size_t seg_hash(string_segment seg) {
     size_t hash = 0;
-    char *ptr = (char*) ((void*) &seg.str);
-    size_t i = 0;
     size_t mod = sizeof(size_t) / sizeof(char);
     size_t offset = 0;
-    while(i < seg.length) {
-        hash ^= ((255UL & ptr[i++]) << (8 * offset++));
+    // printf("hashing ... "); print_string_segment(seg); 
+    for(size_t i = 0; i < seg.length; ++i) {
+        // printf(".. `%c` .", ptr[i]);
+        hash ^= ((255UL & seg.str[i]) << (8 * offset++));
         offset %= mod;
     }
+    // printf("has hash: %zu\n", hash);
     return hash; 
 }
 
 size_t seg_eq(string_segment seg1, string_segment seg2) {
+    // print_string_segment(seg1); print_string_segment(seg2);
     if(seg1.length != seg2.length)
         return 0;
     for(size_t i = 0; i < seg1.length; ++i)
@@ -240,17 +295,28 @@ void _push_frame(environment *env) {
     map_set_hash(f, &seg_hash);
     map_set_key_eq(f, &seg_eq);
     vector_push_back(env->stack_frame, f);
-
 }
 
 void _pop_frame(environment *env) {
-    map_free(vector_get_back(env->stack_frame));
     assert(0 < vector_size(env->stack_frame));
+    map_free(vector_get_back(env->stack_frame));
     vector_pop_back(env->stack_frame);
 }
 
 void _extend_env(environment *env, string_segment id, return_value rv) {
-    map_insert(vector_get_back(env->stack_frame), id, rv);
+    frame f = vector_get_back(env->stack_frame);
+    map_insert(f, id, rv);
+}
+
+environment *_clone_env(environment *env) {
+    size_t sz = vector_size(env->stack_frame);
+    environment *new_env = env_new();
+    for(size_t i = 0; i < sz; ++i) {
+        frame nxt_frame = vector_get(env->stack_frame, i);
+        frame frame_clone = map_clone(nxt_frame);
+        vector_push_back(new_env->stack_frame, frame_clone);
+    }
+    return new_env;
 }
 
 #define LOOP_OVER_REST_SEXPRS(children, result_type, step_expr) \
@@ -271,11 +337,42 @@ void _extend_env(environment *env, string_segment id, return_value rv) {
     }
 
 size_t return_value_is_truthy(return_value);
+void map_bindings(ApliNode node, environment *env);
+Vector(identifier) *construct_list_of_args(ApliNode args_node, environment *env);
+
+#define print_env(env) \
+    printf("@<%p> (", env); \
+    print_frame(vector_get(env->stack_frame, 0)); \
+    for(size_t i = 1; i < vector_size(env->stack_frame); ++i) { \
+        printf(", "); print_frame(vector_get(env->stack_frame, i)); \
+    } \
+    printf(") ")
+
+void print_return_type(return_value val);
+
+void print_frame(frame f) {
+    _identifier_return_value_map_match_t_list_t *lst = map_get_list(f);
+    printf("{");
+    while(list_size(lst)) {
+        MapMatch(identifier, return_value) nxt = list_get_front(lst);
+        print_string_segment(nxt.key);
+        printf(" ");
+        print_return_value(nxt.value);
+        if(1 != list_size(lst))
+            printf(", ");
+        list_pop_front(lst);
+    }
+    printf("}");
+    
+}
 
 return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, environment *env) {
+    if(IDENTIFIER == id.type) // used to resolve recursive identifiers.
+        id = resolve_id(env, id.ref.segment);
+
     if(NUMBER == id.type) {
         printf("Number `%d` is not callable.\n", id.ref.num);
-        assert(0 == "Invalid call!");
+        exit(1);
     } else if(IDENTIFIER == id.type) {
         if(seg_eq_str(id.ref.segment, "+")) {
             int total = 0;
@@ -363,9 +460,50 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
             ret.ref.num = NUMBER == val1.type && NUMBER == val2.type && val1.ref.num >= val2.ref.num;
             return ret;
         } else if(seg_eq_str(id.ref.segment, "let")) {
-            ApliNode bindings = vector_get(children, 1);
-            // LOOP_OVER_REST_SEXPRS(bindings.children, )
+            ApliNode node = vector_get(children, 1);
+            ApliNode bindings = apli_get_child(1);
+            node = apli_get_child(2);
 
+            push_frame(env);
+            map_bindings(bindings, env);
+            return_value body_evaluation = apli_evaluate_node(node);
+            // printf("BODY: "); print_return_value(resolve_id(env, body_evaluation.ref.segment));
+            pop_frame(env);
+            return body_evaluation;
+        } else if(seg_eq_str(id.ref.segment, "defun")) {
+            ApliNode node = vector_get(children, 1);
+            ApliNode function_name = apli_node_get_child(apli_get_child(1), 1);
+            if(!apli_node_terminal_name_equals(function_name, atomic_symbol))
+                assert(0 == "Function name must be an atomic_symbol");
+            return_value function_name_rv = apli_evaluate_node(function_name);
+            assert(IDENTIFIER == function_name_rv.type);
+            identifier function_name_id = function_name_rv.ref.segment;
+
+            node = apli_get_child(2);
+            ApliNode args_node = apli_get_child(1);
+            ApliNode function_body = apli_get_child(2);
+
+            environment *nenv = env_new();
+            Vector(identifier) *identifier_vec = construct_list_of_args(args_node, nenv);
+            env_free(nenv);
+
+            return_value rv;
+            rv.type = FUNCTION;
+
+            rv.ref.fun_v.closure = clone_env(env);
+            rv.ref.fun_v.function_pointer = function_body;
+            rv.ref.fun_v.arguments = identifier_vec;
+
+            // print_env(env);
+            // print_env(rv.ref.fun_v.closure);
+            extend_env(rv.ref.fun_v.closure, function_name_id, rv);
+            extend_env(env, function_name_id, rv);
+
+            // printf("Function made "); print_return_value(rv);
+            // print_env(env);
+            // print_env(rv.ref.fun_v.closure);
+
+            return rv;
         } else if(seg_eq_str(id.ref.segment, "if")) {
             ApliNode node = vector_get(children, 1);
             return_value comp = apli_evaluate_child(1);
@@ -379,10 +517,35 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
             }
         } else {
             printf("Invalid call! ");
+            print_env(env);
             print_return_value(id);
             exit(1);
         }
+    } else if(FUNCTION == id.type) {
+        print_env(env); printf("\n");
+        environment *tmp_closure = id.ref.fun_v.closure;
+        push_frame(tmp_closure);
+        // print_env(tmp_closure);
+        size_t arg_size = vector_size(id.ref.fun_v.arguments);
+        ApliNode node = vector_get(children, 1); // sexprs
+        for(size_t i = 0; i < arg_size; ++i) {
+            extend_env(tmp_closure, vector_get(id.ref.fun_v.arguments, i), apli_evaluate_child(1));
+            if(i == arg_size - 1)
+                break;
+            if(1 == apli_num_children())
+                assert(0 == "Invalid # of arguments given to function call.");
+            node = apli_get_child(2);
+        }
+        if(1 != apli_num_children())
+            assert(0 == "Invalid # of arguments given to function call.");
+        return_value rv = apli_evaluate_node_args(id.ref.fun_v.function_pointer, tmp_closure);
+        pop_frame(tmp_closure);
+        return rv;
     }
+
+    printf("Return value is not callable! ");
+    print_return_value(id);
+    exit(1);
 }
 
 size_t return_value_is_truthy(return_value rv) {
@@ -391,6 +554,83 @@ size_t return_value_is_truthy(return_value rv) {
     } else {
         return 1;
     }
+}
+
+void map_bindings(ApliNode node, environment *env) {
+    // node is an s_expression
+    node = apli_get_child(1); // node : list
+    // _parser_print_parse_tree_value(node.root);
+    if(!apli_node_terminal_name_equals(node, list))
+        (assert(0 == "Bindings must be a list."));
+
+    if(3 != apli_num_children()) 
+        return;
+    node = apli_get_child(2); // s_expressions
+    while(1) {
+        ApliNode binding = apli_get_child(1);
+        binding = apli_node_get_child(binding, 1);
+        if(!apli_node_terminal_name_equals(binding, list))
+            (assert(0 == "Bindings must be a list."));
+        if(3 != vector_size(binding.children))
+            (assert(0 == "Bindings cannot be '()'"));
+        binding = apli_node_get_child(binding, 2);
+
+        ApliNode atomic_symbol_id = apli_node_get_child(apli_node_get_child(binding, 1), 1);
+        if(!apli_node_terminal_name_equals(atomic_symbol_id, atomic_symbol))
+            (assert(0 == "Binding name must be an atomic_symbol!"));
+
+        ApliToken tok = apli_node_get_child(atomic_symbol_id, 1).root.ptr.token;
+        string_segment segment = {apli_token_ref(tok), apli_token_reflen(tok)};
+
+        return_value var_name;
+        var_name.type = IDENTIFIER;
+        var_name.ref.segment = segment;
+        return_value value = apli_evaluate_node_args(apli_node_get_child(binding, 2), env);
+
+
+        if(IDENTIFIER != var_name.type)
+            (assert(0 == "Binding name is not an identifier!"));
+        string_segment var_segment = var_name.ref.segment;
+
+        extend_env(env, var_segment, value);
+
+        // printf("Adding a link between\n");
+        // printf("- "); print_return_value(var_name);
+        // printf("- "); print_return_value(resolve_id(env, var_segment));
+
+        if(vector_size(node.children) < 2)
+            break;
+        node = apli_get_child(2);
+    }
+}
+
+Vector(identifier) *construct_list_of_args(ApliNode node, environment *env) {
+    // node is an s_expression
+    node = apli_get_child(1); // node : list
+    Vector(identifier) *ids = vector_new(identifier);
+
+    // _parser_print_parse_tree_value(node.root);
+    if(!apli_node_terminal_name_equals(node, list))
+        (assert(0 == "Bindings must be a list."));
+
+    if(3 != apli_num_children()) 
+        return ids;
+    node = apli_get_child(2); // s_expressions
+
+    while(1 <= apli_num_children()) {
+        ApliNode next_id = apli_node_get_child(apli_get_child(1), 1);
+        if(!apli_node_terminal_name_equals(next_id, atomic_symbol))
+            (assert(0 == "Bindings must be a list."));
+
+        ApliToken tok = apli_node_get_child(next_id, 1).root.ptr.token;
+        string_segment segment = {apli_token_ref(tok), apli_token_reflen(tok)};
+
+        vector_push_back(ids, segment);
+        if(1 == apli_num_children())
+            break;
+        node = apli_get_child(2);
+    }
+    return ids;
 }
 
 void* global_ptr = NULL;
@@ -416,8 +656,20 @@ size_t _segment_eq_str(string_segment segment, const char *str) {
 
 void print_return_value(return_value val) {
     if(NUMBER == val.type) {
-        printf("NUMBER: %d\n", val.ref.num);
+        printf("NUMBER: %d", val.ref.num);
     }else if(IDENTIFIER == val.type) {
-        printf("IDENTIFIER: `%s`\n", seg_to_str(val.ref.segment));
+        printf("IDENTIFIER: `%s`", seg_to_str(val.ref.segment));
+    } else if(FUNCTION == val.type) {
+        printf("FUNCTION <%p>", val.ref.fun_v.closure);
+    }
+}
+
+void print_return_type(return_value val) {
+    if(NUMBER == val.type) {
+        printf("NUMBER");
+    }else if(IDENTIFIER == val.type) {
+        printf("IDENTIFIER");
+    } else if(FUNCTION == val.type) {
+        printf("FUNCTION");
     }
 }
