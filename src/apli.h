@@ -30,7 +30,10 @@
 #define apli_fn(lhs_terminal_name)      apli_function(lhs_terminal_name)
 #define apli_bnf_rule(lhs_terminal_name, ...) \
     bnf_rules_add_rule(bnf_rules, bnf_rule_from(lhs_terminal_name, __VA_ARGS__))
-#define STR_BUFFER_SIZE 100
+#define apli_bnf_rule_internal(expr) \
+    apli_bnf_rule PASS(expr)
+#define apli_bnf(...) \
+    MAP(apli_bnf_rule_internal, SEMI_COLON, __VA_ARGS__)
 
 #define apli_define_non_terminal(name) \
     Terminal name = non_terminal_from(#name); \
@@ -69,7 +72,6 @@
     map_set_key_eq(eval_fns, &str_eq); \
     map_set_hash(eval_fns, &str_hash); \
     parser_type parser_type_inst = LEFT_TO_RIGHT; \
-    char buf[STR_BUFFER_SIZE]
 
 #define apli_set_parser_type(type) \
     parser_type_inst = type

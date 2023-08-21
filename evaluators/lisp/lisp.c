@@ -153,16 +153,18 @@ __APLI_START__
     );
     apli_regex_compile();
 
-    apli_bnf_rule(s_expression, atomic_symbol);
-    apli_bnf_rule(s_expression, OPEN_PAREN, s_expression, PERIOD, s_expression, CLOSE_PAREN);
-    apli_bnf_rule(s_expression, list);
-    apli_bnf_rule(list, OPEN_PAREN, s_expressions, CLOSE_PAREN);
-    apli_bnf_rule(list, OPEN_PAREN, CLOSE_PAREN);
-    apli_bnf_rule(s_expressions, s_expression);
-    apli_bnf_rule(s_expressions, s_expression, s_expressions);
-    // apli_bnf_rule(s_expressions, s_expressions, s_expressions); // this isn't needed because we go right->left
-    apli_bnf_rule(atomic_symbol, ATOMIC_SYMBOL);
-    
+
+    apli_bnf(
+        (s_expression, atomic_symbol),
+        (s_expression, OPEN_PAREN, s_expression, PERIOD, s_expression, CLOSE_PAREN),
+        (s_expression, list),
+        (list, OPEN_PAREN, s_expressions, CLOSE_PAREN),
+        (list, OPEN_PAREN, CLOSE_PAREN),
+        (s_expressions, s_expression),
+        (s_expressions, s_expression, s_expressions),
+        (atomic_symbol, ATOMIC_SYMBOL)
+    );
+
     char *input;
     if(0 == strcmp("-e", argv[1]) || 0 == strcmp("--execute", argv[1])) {
         if(3 != argc) {
@@ -178,9 +180,17 @@ __APLI_START__
         input = add_pre_post_buffer(ftoca(argv[1]), 2);
     }
 
+    parse_tree_result = apli_get_parse_tree((input), parser_type_inst);
+
+    // DRY_RUN wil only run the lexing and parsing steps. Since the evaluation is the
+    // user's reponsibility, I will be focusing on optimizing the dry run.
+#ifdef DRY_RUN
+    exit(0);
+#endif
+
     environment *env = env_new();
     push_frame(env);
-    apli_evaluate(input);
+    apli_evaluate_node(parse_tree_result.root);
     env_free(env);
 
     free(input);
@@ -393,7 +403,9 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
     if(IDENTIFIER == id.type) // used to resolve recursive identifiers.
         id = resolve_id(env, id.ref.segment);
 #ifdef PRINT_STACK_FRAME
-    print_env(env); printf("\n");
+    printf("\x1b[31;1m");
+    print_return_value(id); printf(" "); print_env(env); 
+    printf("\x1b[0m\n");
 #endif
 
     if(NUMBER == id.type) {
@@ -619,6 +631,42 @@ return_value lisp_call(return_value id, Vector(_parse_tree_node_t) *children, en
             if(1 == vector_size(children))
                 return one;
             return apli_evaluate_node(vector_get(children, 1));
+        } else if(seg_eq_str(id.ref.segment, "and")) {
+            return_value rv;
+            if(1 < vector_size(children)) {
+                rv.type = NUMBER;
+                ApliNode node = vector_get(children, 1);
+                while(apli_node_terminal_name_equals(node, s_expressions)) {
+                    return_value result = apli_evaluate_child(1);
+                    if(NUMBER == result.type && 0 == result.ref.num) {
+                        rv.ref.num = 0;
+                        return rv;
+                    }
+                    if(vector_size(node.children) < 2)
+                        break;
+                    node = apli_get_child(2);
+                }
+            }
+            rv.ref.num = 1;
+            return rv;
+        } else if(seg_eq_str(id.ref.segment, "or")) {
+            return_value rv;
+            if(1 < vector_size(children)) {
+                rv.type = NUMBER;
+                ApliNode node = vector_get(children, 1);
+                while(apli_node_terminal_name_equals(node, s_expressions)) {
+                    return_value result = apli_evaluate_child(1);
+                    if(NUMBER != result.type || 0 != result.ref.num) {
+                        rv.ref.num = 1;
+                        return rv;
+                    }
+                    if(vector_size(node.children) < 2)
+                        break;
+                    node = apli_get_child(2);
+                }
+            }
+            rv.ref.num = 0;
+            return rv;
         } else {
             printf("Invalid call! ");
             print_env(env);
