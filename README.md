@@ -6,7 +6,7 @@ Although other lexing and parsing tools exist, many tools have users write code 
 \
 APLI handles the lexing and parsing steps in a way that is simple and declarative. Everything is written natively in C. No confusing syntax -- all APLI api calls start with `apli`, and the user can choose to explicitly call the api with arguments or let APLI infer the names of the arguments.
 
-A clear separation between the lexing & parsing steps (APLI) and the user's evaluator deliniates responsibility. As the author of APLI I am responsible for making performance improvements and making sure that APLI is bug free, but, after the AST is constructed, any performance improvements are the user's responsibility.  
+A clear separation between the lexing & parsing steps (APLI) and the user's evaluator delineates responsibility. As the author of APLI I am responsible for making performance improvements and making sure that APLI is bug free, but, after the AST is constructed, any performance improvements are the user's responsibility.  
 
 ## How do I write an evaluator?
 The steps to construct an evaluator are:
