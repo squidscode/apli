@@ -55,7 +55,7 @@ __APLI_START__
         assert(0 == "The second argument must be the arithmetic expression");
 
     apli_non_terminals(expr, term, factor);
-    apli_terminals(NUMBER, PLUS, MINUS, STAR, FORWARD_SLASH, OPEN_PAREN, CLOSE_PAREN, CARROT);
+    apli_terminals(NUMBER, PLUS, MINUS, STAR, FORWARD_SLASH, OPEN_PAREN, CLOSE_PAREN, CARET);
 
     // Regexes need to be written in order of precedence!
     apli_regex(
@@ -81,7 +81,7 @@ __APLI_START__
         (term, term, STAR, factor),
         (term, term, FORWARD_SLASH, factor),
         (factor, NUMBER),
-        (factor, factor, CARROT, NUMBER),
+        (factor, factor, CARET, NUMBER),
         (factor, OPEN_PAREN, expr, CLOSE_PAREN)
     );
 
