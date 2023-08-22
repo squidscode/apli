@@ -9,7 +9,7 @@ A clear separation between the lexing & parsing steps (APLI) and the user's eval
 ## How do I write an evaluator?
 The steps to construct an evaluator are:
 
-(1) Create or find the languages BNF rules. Here's an example of a BNF for simple arithmetic expressions:
+1. Create or find the languages BNF rules. Here's an example of a BNF for simple arithmetic expressions:
 ```
 <expr>   := <term>
 <expr>   := <expr> ('+' | '-') <term>
@@ -18,7 +18,7 @@ The steps to construct an evaluator are:
 <factor> := NUMBER | '(' <expression> ')' | <factor> '^' NUMBER
 ```
 
-(2) Construct a list of regexes you need to tokenize the input.
+2. Construct a list of regexes you need to tokenize the input.
 ```
 NUMBER   := "[1-9][0-9]*"
 PLUS     := "\\+"
@@ -32,14 +32,15 @@ CARET    := "\\^"
 
 NOTE: Although these regexes correctly describe the tokens, APLI works with regexes that "contain the entire token" rather than performing a "largest match". The internal regex matching algorithm only returns the shortest matches. This means, a NUMBER would have to be written as `[^0-9][1-9][0-9]*[^0-9]` with a `+1` offset from the left and a `-1` offset from the right. 
 
-(3) Construct your evaluator!
-  (a) Include "<apli.h>".
-  (b) Define the required eval-hook macros and call `apli_init`.
-  (c) Forward declare *apli_functions* corresponding to the non-terminals in your BNF.
-  (d) Define your non-terminals and terminals.
-  (e) Map each terminal to a regex using `apli_regex` and compile your regexes.
+3. Construct your evaluator! \
+  (a) Include "<apli.h>". \
+  (b) Define the required eval-hook macros and call `apli_init`. \
+  (c) Forward declare *apli_functions* corresponding to the non-terminals in your BNF. \
+  (d) Define your non-terminals and terminals. \
+  (e) Map each terminal to a regex using `apli_regex` and compile your regexes. \
   (f) Write out your BNF rules using `apli_bnf`.
   (g) Call `apli_evaluate` on your input (of type `char *`).
+
 ```c
 #include <apli.h>
 
