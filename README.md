@@ -2,7 +2,9 @@
 The Abstract Programming Language Interpreter (APLI) is a framework for making evaluators or Abstract Syntax Trees (ASTs). The user is responsible for working with the AST, walking through the nodes via `eval-hooks`, in order to interpret/compile/transipile the parsed output. 
 
 ## Why use APLI?
-Although other lexing and parsing tools exist, many tools have users write code in a domain-specific language (ie. lex files or yacc files). DSLs can make the library (1) harder to understand and (2) detract from the author's intent. APLI handles the lexing and parsing steps in a way that is simple and declarative. Everything is written natively in C. No confusing syntax -- all APLI api calls start with `apli`, and the user can choose to explicitly call the api with arguments or let APLI infer the names of the arguments.
+Although other lexing and parsing tools exist, many tools have users write code in a domain-specific language (ie. lex files or yacc files). DSLs can make the library: (1) harder to understand and (2) detract from the author's intent. \
+\
+APLI handles the lexing and parsing steps in a way that is simple and declarative. Everything is written natively in C. No confusing syntax -- all APLI api calls start with `apli`, and the user can choose to explicitly call the api with arguments or let APLI infer the names of the arguments.
 
 A clear separation between the lexing & parsing steps (APLI) and the user's evaluator deliniates responsibility. As the author of APLI I am responsible for making performance improvements and making sure that APLI is bug free, but, after the AST is constructed, any performance improvements are the user's responsibility.  
 
