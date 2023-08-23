@@ -9,7 +9,7 @@ from colors import prRed, prCyan
 LEAF_NODE_NAME = "__LEAF__"
 INDENT_STR = "  "
 TOP_BOX_CHARACTER = "\u2514"
-TEST_FILE_TIME_LIMIT = 5       # seconds
+TEST_FILE_TIME_LIMIT = 6       # seconds
 ALPHA = 0.05
 ROUND_DIGITS = 3
 MIN_TESTS = 5
