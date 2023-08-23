@@ -1,0 +1,8 @@
+def prRed(skk, **kwargs): print("\033[91m {}\033[00m" .format(skk), **kwargs)
+def prGreen(skk, **kwargs): print("\033[92m {}\033[00m" .format(skk), **kwargs)
+def prYellow(skk, **kwargs): print("\033[93m {}\033[00m" .format(skk), **kwargs)
+def prLightPurple(skk, **kwargs): print("\033[94m {}\033[00m" .format(skk), **kwargs)
+def prPurple(skk, **kwargs): print("\033[95m {}\033[00m" .format(skk), **kwargs)
+def prCyan(skk, **kwargs): print("\033[96m {}\033[00m" .format(skk), **kwargs)
+def prLightGray(skk, **kwargs): print("\033[97m {}\033[00m" .format(skk), **kwargs)
+def prBlack(skk, **kwargs): print("\033[98m {}\033[00m" .format(skk), **kwargs)

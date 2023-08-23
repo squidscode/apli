@@ -1,5 +1,3 @@
-(write-line "Hello World!")
-
 (defun fib (x)
     (if (= x 0) 0
     (if (= x 1) 1
@@ -12,7 +10,7 @@
             (funcall call-back low)
             (my-loop (+ low 1) high call-back))))
 
-(my-loop 1 20
+(my-loop 1 10
     (lambda (x)
         (write x)
         (write-string "    ")
