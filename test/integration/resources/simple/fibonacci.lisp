@@ -10,7 +10,7 @@
             (funcall call-back low)
             (my-loop (+ low 1) high call-back))))
 
-(my-loop 1 10
+(my-loop 1 12
     (lambda (x)
         (write x)
         (write-string "    ")
