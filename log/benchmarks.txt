@@ -25,3 +25,17 @@ Commit message: Merging
   └ [96m extra[00m
 
 
+Commit message: Merge branch 'main' of https://github.com/squidscode/apli
+# Please enter a commit message to explain why this merge is necessary,
+# especially if it merges an updated upstream into a topic branch.
+#
+# Lines starting with '#' will be ignored, and an empty message aborts
+# the commit.
+[96m resources[00m
+  └ [96m simple[00m
+    └ [91m fibonacci.lisp[00m 0.204 ± 0.004 seconds (n=18)
+    └ [91m hello_world.lisp[00m 0.18 ± 0.003 seconds (n=33)
+    └ [91m factorial.lisp[00m 0.188 ± 0.008 seconds (n=32)
+  └ [96m extra[00m
+
+

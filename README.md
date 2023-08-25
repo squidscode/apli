@@ -6,7 +6,7 @@ Although other lexing and parsing tools exist, many tools have users write code 
 \
 APLI handles the lexing and parsing steps in a way that is simple and declarative. Everything is written natively in C. No confusing syntax -- all APLI api calls start with `apli`, and the user can choose to explicitly call the api with arguments or let APLI infer the names of the arguments.
 
-A clear separation between the lexing & parsing steps (APLI) and the user's evaluator delineates responsibility. As the author of APLI I am responsible for making performance improvements and making sure that APLI is bug free, but, after the AST is constructed, any performance improvements are the user's responsibility.  
+A clear separation between the lexing & parsing steps (APLI) and the user's evaluator delineates responsibility. As the author of APLI, I am responsible for making performance improvements and making sure that APLI is bug free, but, after the AST is constructed, any performance improvements are the user's responsibility.  
 
 ## How do I write an evaluator?
 The steps to construct an evaluator are:
@@ -32,7 +32,7 @@ CL_PAREN := "\\)"
 CARET    := "\\^"
 ```
 
-NOTE: Although these regexes correctly describe the tokens, APLI works with regexes that "contain the entire token" rather than performing a "largest match". The internal regex matching algorithm only returns the shortest matches. This means, a NUMBER would have to be written as `[^0-9][1-9][0-9]*[^0-9]` with a `+1` offset from the left and a `-1` offset from the right. 
+NOTE: Although these regexes correctly describe the tokens, APLI works with regexes that "contain the entire token" rather than performing a "largest match". The internal regex matching algorithm only returns the **shortest matches**. This means, a NUMBER would have to be written as `[^0-9][1-9][0-9]*[^0-9]` with a `+1` character offset from the left and a `-1` character offset from the right. I am currently working on writing a faster regex engine that'll match **largest matches**. 
 
 3. Construct your evaluator! \
   (a) Include "<apli.h>". \
@@ -113,4 +113,4 @@ apli_function(factor) {
 
 Check out [`calculator.c`](evaluators/arithmetic/calculator.c) to see a working implementation. Also, check out [`lisp.c`](evaluators/lisp/lisp.c) for a tree-walking lisp interpreter. It can currently interpret [the following files](test/integration/resources/simple), and is approximately 10 times slower than `clisp`, partly due to inefficiencies in `apli` and, probably, the fact that it's not complied to bytecode first.
 
-If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for proof-of-concept. Is it fast? No. Does it work? Check out the integration tests (yes?).
+If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for a dead-simple tree-walking interpreter. Is it fast? No. Does it work? Sure (the tests in `test/integration/resources` evaluate correctly).
