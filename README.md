@@ -32,7 +32,7 @@ CL_PAREN := "\\)"
 CARET    := "\\^"
 ```
 
-NOTE: Although these regexes correctly describe the tokens, APLI works with regexes that "contain the entire token" rather than performing a "largest match". The internal regex matching algorithm only returns the **shortest matches**. This means, a NUMBER would have to be written as `[^0-9][1-9][0-9]*[^0-9]` with a `+1` character offset from the left and a `-1` character offset from the right. I am currently working on writing a faster regex engine that'll match **largest matches**. 
+NOTE: Although these regexes correctly describe the tokens, APLI works with regexes that "contain the entire token" rather than performing a "largest match". The internal regex matching algorithm only returns the shortest matches. This means, a NUMBER would have to be written as `[^0-9][1-9][0-9]*[^0-9]` with a `+1` offset from the left and a `-1` offset from the right. 
 
 3. Construct your evaluator! \
   (a) Include "<apli.h>". \
@@ -111,6 +111,6 @@ apli_function(factor) {
 }
 ```
 
-Check out [`calculator.c`](evaluators/arithmetic/calculator.c) to see a working implementation. Also, check out [`lisp.c`](evaluators/lisp/lisp.c) for a tree-walking lisp interpreter. It can currently interpret [the following files](test/integration/resources/simple), and is approximately 10 times slower than `clisp`, partly due to inefficiencies in `apli` and, probably, the fact that it's not complied to bytecode first.
+Check out [`calculator.c`](evaluators/arithmetic/calculator.c) to see a working implementation. Also, check out [`lisp.c`](evaluators/lisp/lisp.c) for a tree-walking lisp interpreter. It can currently interpret [the following files](test/integration/resources/simple), and is approximately 10 times slower than `clisp`, partly due to inefficiencies in `apli` and, probably, the fact that it's not complied to bytecode first. 
 
 If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for a dead-simple tree-walking interpreter. Is it fast? No. Does it work? Sure (the tests in `test/integration/resources` evaluate correctly).
