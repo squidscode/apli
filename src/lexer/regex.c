@@ -70,7 +70,7 @@ _regex_t* _regex_compile(_regex_t *regex) {
         set_insert(alphabet, i);
     }
     size_t end = _regex_parse(regex->nfa, 0, regex->raw_regex, regex_size);
-    // printf("start : %zu\nend : %zu\n", 0UL, end);
+    // printf("[`%s`] # of nfa states: %zu, ", regex->raw_regex, end + 1);
     nfa_add_accept_state(regex->nfa, end);
     Dfa(size_t_set_ptr_t, char) *dfa = nfa_to_dfa(regex->nfa, alphabet);
     // printf("# of dfa transitions: %zu\n", map_size(dfa->transition_map));
@@ -94,7 +94,9 @@ size_t _regex_parse(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
     size_t end = begin_expansion_state - 1;
     // Using a function pointer here means no 'if' statement inside the while loop. This is faster.
     // printf("begin_expansion_state: %zu\n", begin_expansion_state);
-    __auto_type fn = (0 == begin_expansion_state) ? &_regex_expand_with_root_tokens : &_regex_expand;
+    size_t (*fn)(_size_t_char_nfa_t *, size_t, const char *, size_t) = (0 == begin_expansion_state) 
+        ? &_regex_expand_with_root_tokens 
+        : &_regex_expand;
     while(0 < list_size(capturing_groups)) {
         _regex_string_segment_t segment = list_get_front(capturing_groups);
         // _debug_print_regex_string_segment_t(segment);

@@ -111,6 +111,6 @@ apli_function(factor) {
 }
 ```
 
-Check out `calculator.c` in the `evaluators` folder to see a working implementation. 
+Check out [`calculator.c`](evaluators/arithmetic/calculator.c) to see a working implementation. Also, check out [`lisp.c`](evaluators/lisp/lisp.c) for a tree-walking lisp interpreter. It can currently interpret [the following files](test/integration/resources/simple), and is approximately 10 times slower than `clisp`, partly due to inefficiencies in `apli` and, probably, the fact that it's not complied to bytecode first.
 
 If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for proof-of-concept. Is it fast? No. Does it work? Check out the integration tests (yes?).
