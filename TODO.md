@@ -17,3 +17,8 @@ Extensions:
 ```bash
 clang -D DEBUG -D COLOR -D MEMORY_CHECK -fsanitize=address -fno-omit-frame-pointer -O2 test/lexer/lex_test.c ; ./a.out; rm a.out;
 ```
+
+To create a bash profile:
+```
+LD_PRELOAD=/usr/local/lib/libprofiler.so CPUPROFILE=test.prof ./a.out test/integration/resources/complex/very_long_lisp_program.lisp
+```

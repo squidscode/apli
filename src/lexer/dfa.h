@@ -61,6 +61,7 @@
 #define dfa_add_accept_state(dfa, state)            ((dfa)->fns->add_accept_state((dfa), (state)))
 #define dfa_remove_accept_state(dfa, state)         ((dfa)->fns->remove_accept_state((dfa), (state)))
 #define dfa_free(dfa)                               ((dfa)->fns->destroy((dfa)))
+#define dfa_compress(dfa)                           ((dfa)->fns->compress((dfa)))
 #define dfa_to_fdfa(dfa)                            ((dfa)->fns->dfa_to_fdfa((dfa)))
 #define fdfa_free(fdfa)                             ((fdfa)->destroy((fdfa)))
 #define dfa_new(st, tt, begin_state)                (_##st##_##tt##_dfa_new(begin_state))
@@ -70,13 +71,14 @@
     struct _##state_type##_##transition_type##_transition_ { \
         state_type state; \
         transition_type transition; \
-    }; \
+    } __attribute__((packed)); \
     typedef struct _##state_type##_##transition_type##_transition_ _##state_type##_##transition_type##_transition_t
 
 
 #define init_dfa_types(st, tt) \
     /* Type definitions: */ \
     define_transition(st, tt); \
+    define_map(st, size_t); \
     define_map(_##st##_##tt##_transition_t, st)
 
 // Defines a dfa with state_type (st) and transition_type (tt)
@@ -152,9 +154,59 @@
         _##st##_##tt##_assert_is_not_locked(dfa); \
         return set_erase(dfa->accept_states, state); \
     } \
+    \
+    void _size_t_##tt##_dfa_add_transition(Dfa(size_t, tt)*, size_t, tt, size_t); \
+    void _size_t_##tt##_dfa_add_accepting_state(Dfa(size_t, tt)*, size_t); \
+    \
     Dfa(size_t, tt)* _##st##_##tt##_dfa_compress(struct _##st##_##tt##_dfa_ *dfa) { \
-        Dfa(size_t, tt)* new_dfa = dfa_new(size_t, tt, 0); \
-        assert(0 == "Not implemented yet!"); \
+        Dfa(size_t, tt)* new_dfa = dfa_new(size_t, tt, 0UL); \
+        Map(st, size_t)* state_map = map_new(st, size_t); \
+        map_set_hash(state_map, dfa->accept_states->hash); \
+        map_set_key_eq(state_map, dfa->accept_states->value_equals); \
+        map_insert(state_map, dfa->begin_state, 0UL); \
+        \
+        /* Oh no, this type is long... */ \
+        __##st##_##tt##_transition_t_##st##_map_match_t_list_t *list_of_transitions = map_get_list(dfa->transition_map); \
+        __##st##_##tt##_transition_t_##st##_map_match_t_list_node_t *list_iterator = list_get_iterator(list_of_transitions); \
+        \
+        size_t counter = 1UL; \
+        while(iter_is_not_null(list_iterator)) { \
+            __##st##_##tt##_transition_t_##st##_map_match_t nxt_match = iter_val(list_iterator); \
+            if(0 == map_count(state_map, nxt_match.key.state)) { \
+                /*printf("compress %zu -> %zu\n", nxt_match.key.state, counter);*/ \
+                map_insert(state_map, nxt_match.key.state, counter); \
+                ++counter; \
+            } \
+            if(0 == map_count(state_map, nxt_match.value)) { \
+                /*printf("compress %zu -> %zu\n", nxt_match.value, counter);*/ \
+                map_insert(state_map, nxt_match.value, counter); \
+                ++counter; \
+            } \
+            list_iterator = iter_next(list_iterator); \
+        } \
+        \
+        list_iterator = list_get_iterator(list_of_transitions); \
+        while(iter_is_not_null(list_iterator)) { \
+            __##st##_##tt##_transition_t_##st##_map_match_t nxt_match = iter_val(list_iterator); \
+            /*printf("compress transition: %zu, %c -> %zu\n", map_at(state_map, nxt_match.key.state), nxt_match.key.transition, map_at(state_map, nxt_match.value));*/ \
+            _size_t_##tt##_dfa_add_transition(new_dfa, map_at(state_map, nxt_match.key.state), nxt_match.key.transition, map_at(state_map, nxt_match.value)); \
+            list_iterator = iter_next(list_iterator); \
+        } \
+        \
+        list_free(list_of_transitions); \
+        \
+        List(st) *list_of_accept_states = set_get_list(dfa->accept_states); \
+        while(list_size(list_of_accept_states)) { \
+            st nxt = list_get_front(list_of_accept_states); \
+            /*printf("accepting state: %zu\n", map_at(state_map, nxt));*/\
+            _size_t_##tt##_dfa_add_accepting_state(new_dfa, map_at(state_map, nxt)); \
+            list_pop_front(list_of_accept_states); \
+        } \
+        \
+        map_free(state_map); \
+        list_free(list_of_accept_states); \
+        \
+        return new_dfa; \
     } \
     \
     void _##st##_##tt##_dfa_free(_##st##_##tt##_dfa_t *dfa) { \

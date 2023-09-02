@@ -53,3 +53,8 @@ dkms.conf
 
 # MAC Specific files
 *.DS_Store
+
+*.pyc
+**/__pycache__/
+
+debug/*

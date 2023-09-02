@@ -88,6 +88,21 @@ int main() {
     dfa_remove_accept_state(number_dfa, 0);
     assertTrue(0 == dfa_run(number_dfa, str_to_iter("")));
 
+    Dfa(size_t, char) *compressed_number_dfa = dfa_compress(number_dfa);
+    assertTrue(0 == dfa_run(compressed_number_dfa, str_to_iter("asdf")));
+    assertTrue(0 == dfa_run(compressed_number_dfa, str_to_iter("-")));
+    assertTrue(0 == dfa_run(compressed_number_dfa, str_to_iter("-0.0")));
+    assertTrue(0 == dfa_run(compressed_number_dfa, str_to_iter("01245")));
+    assertTrue(0 == dfa_run(compressed_number_dfa, str_to_iter("1999A245")));
+    assertTrue(0 == dfa_run(compressed_number_dfa, str_to_iter("1999A245\n")));
+    assertTrue(1 == dfa_run(compressed_number_dfa, str_to_iter("0")));
+    assertTrue(1 == dfa_run(compressed_number_dfa, str_to_iter("12404")));
+    assertTrue(1 == dfa_run(compressed_number_dfa, str_to_iter("-0")));
+    assertTrue(1 == dfa_run(compressed_number_dfa, str_to_iter("12345678909876453412")));
+    assertTrue(1 == dfa_run(compressed_number_dfa, str_to_iter("-46456")));
+
+    dfa_free(compressed_number_dfa);
+
     dfa_free(number_dfa);
     list_free(str_list);
 

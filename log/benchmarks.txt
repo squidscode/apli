@@ -1,41 +1,13 @@
-Commit message: Testing commit hook.
-[96m resources[00m
-  └ [96m simple[00m
-    └ [91m fibonacci.lisp[00m 0.205 ± 0.003 seconds (n=17)
-    └ [91m hello_world.lisp[00m 0.179 ± 0.003 seconds (n=32)
-    └ [91m factorial.lisp[00m 0.183 ± 0.004 seconds (n=32)
-  └ [96m extra[00m
-
-
-Commit message: Changing fib size to 10
-[96m resources[00m
-  └ [96m simple[00m
-    └ [91m fibonacci.lisp[00m 0.208 ± 0.004 seconds (n=21)
-    └ [91m hello_world.lisp[00m 0.178 ± 0.003 seconds (n=32)
-    └ [91m factorial.lisp[00m 0.178 ± 0.001 seconds (n=33)
-  └ [96m extra[00m
-
-
-Commit message: Merging
-[96m resources[00m
-  └ [96m simple[00m
-    └ [91m fibonacci.lisp[00m 0.212 ± 0.007 seconds (n=16)
-    └ [91m hello_world.lisp[00m 0.179 ± 0.002 seconds (n=27)
-    └ [91m factorial.lisp[00m 0.181 ± 0.002 seconds (n=32)
-  └ [96m extra[00m
-
-
-Commit message: Merge branch 'main' of https://github.com/squidscode/apli
-# Please enter a commit message to explain why this merge is necessary,
-# especially if it merges an updated upstream into a topic branch.
-#
-# Lines starting with '#' will be ignored, and an empty message aborts
-# the commit.
-[96m resources[00m
-  └ [96m simple[00m
-    └ [91m fibonacci.lisp[00m 0.204 ± 0.004 seconds (n=18)
-    └ [91m hello_world.lisp[00m 0.18 ± 0.003 seconds (n=33)
-    └ [91m factorial.lisp[00m 0.188 ± 0.008 seconds (n=32)
-  └ [96m extra[00m
-
+ Current best:
+ resources
+  └  features
+    └  lexical_scoping.lisp 0.2 ± 0.008 seconds (n=23)
+    └  recursion.lisp 0.186 ± 0.001 seconds (n=31)
+  └  simple
+    └  arithmetic.lisp 0.194 ± 0.003 seconds (n=30)
+    └  fibonacci.lisp 0.212 ± 0.007 seconds (n=27)
+    └  hello_world.lisp 0.187 ± 0.006 seconds (n=33)
+    └  factorial.lisp 0.208 ± 0.008 seconds (n=32)
+  └  non-features
+    └  mutual_recursion.lisp 0.219 ± 0.009 seconds (n=27)
 

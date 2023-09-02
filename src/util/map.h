@@ -15,8 +15,8 @@
  * 
  * ----- Usage -----
  * Map(T1, T2) *map = map_new(T1, T2);
- *   set_map_hash(map, fn)                  -> void
- *   set_map_key_eq(map, fn)                -> void
+ *   map_set_hash(map, fn)                  -> void
+ *   map_set_key_eq(map, fn)                -> void
  *   map_insert(map, key, value)            -> void
  *   map_at(map, key)                       -> value
  *   map_erase(map, key)                    -> size_t

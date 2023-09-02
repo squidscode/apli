@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <assert.h>
+// #include "../util/bitset.h"
 #include "nfa.h"
 
 /**
@@ -48,7 +49,7 @@
     define_list(int); \
     init_dfa_types(size_t, char); \
     typedef struct _size_t_char_dfa_ _size_t_char_dfa_t; \
-    _size_t_char_dfa_t* _size_t_char_dfa_new(); \
+    _size_t_char_dfa_t* _size_t_char_dfa_new(size_t); \
     init_nfa(size_t, char); \
     define_dfa(size_t, char); \
     define_nfa(size_t, char)

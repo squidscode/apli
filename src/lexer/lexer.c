@@ -35,6 +35,18 @@ void _token_rules_compile(TokenRules *tr) {
 
 size_t _token_rules_matches_vector_has_matches(Vector(_matches_ptr) *matches);
 
+void _token_rules_ignore_token(List(_token_t)* tokens, const char* token_name) {
+    Iterator(_token_t) *iter = list_get_iterator(tokens);
+    while(iter_is_not_null(iter)) {
+        _token_t nxt_token = iter_val(iter);
+        Iterator(_token_t) *tmp_iter = iter;
+        iter = iter_next(iter);
+        if(0 == strcmp(nxt_token.name, token_name)) {
+            iter_remove(tmp_iter, tokens);
+        }
+    }
+}
+
 List(_token_t)* _token_rules_tokenize(TokenRules *tr, const char *input) {
     Vector(_matches_ptr) *matches = vector_new(_matches_ptr);
     vector_resize_val(matches, vector_size(tr->rules), NULL);

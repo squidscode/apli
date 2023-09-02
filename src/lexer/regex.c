@@ -17,7 +17,7 @@ struct _regex_ {
     _regex_state_type state;
     const char* raw_regex;
     Nfa(size_t, char) *nfa;
-    Fdfa(size_t_set_ptr_t, char) *fdfa;
+    Fdfa(size_t, char) *fdfa;
 };
 
 _regex_t* _regex_from(const char* str) {
@@ -75,7 +75,9 @@ _regex_t* _regex_compile(_regex_t *regex) {
     Dfa(size_t_set_ptr_t, char) *dfa = nfa_to_dfa(regex->nfa, alphabet);
     // printf("# of dfa transitions: %zu\n", map_size(dfa->transition_map));
     set_free(alphabet);
-    regex->fdfa = dfa_to_fdfa(dfa);
+    Dfa(size_t, char) *compressed_dfa = dfa_compress(dfa); // added step
+    free(dfa);
+    regex->fdfa = dfa_to_fdfa(compressed_dfa);
     regex->state = REGEX_COMPILED;
     return regex;
 }
@@ -126,10 +128,11 @@ List(_regex_string_segment_t)* _regex_split_by_capturing_groups(const char *ptr,
             i += 1; // ignore the next character ALWAYS!
             continue;
         }
-        if('(' == ptr[i])
-            paren_level += 1;
-        if(')' == ptr[i])
-            paren_level -= 1;
+        paren_level += ('(' == ptr[i]) - (')' == ptr[i]);
+        // if('(' == ptr[i])
+        //     paren_level += 1;
+        // if(')' == ptr[i])
+        //     paren_level -= 1;
         if('|' == ptr[i] && 0 == paren_level) {
             list_push_back(groups, _regex_string_segment_from(ptr, capture_group_begin_offset, i));
             capture_group_begin_offset = i + 1;
@@ -666,7 +669,7 @@ _regex_fns_t _regex_fn_impl_ = {
     &_regex_run,
     // &_regex_find_all_regex_matches,
     &_regex_find_all_regex_matches_exponential_pdf,
-    &_regex_destroy
+     &_regex_destroy
 };
 
 void _debug_print_regex_string_segment_t(_regex_string_segment_t rss) {
