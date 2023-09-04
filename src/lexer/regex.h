@@ -3,8 +3,13 @@
 
 #include <string.h>
 #include <assert.h>
-// #include "../util/bitset.h"
+#ifdef UNOPTIMIZED
 #include "nfa.h"
+#else
+#include "nfa_optimized.h"
+#endif
+
+#include "../util/bitset.h"
 
 /**
  * Loads, compiles, and runs a POSIX (ERE) style regex.
@@ -44,7 +49,6 @@
  */
 
 #define init_regex() \
-    define_list(size_t); \
     define_list(char); \
     define_list(int); \
     init_dfa_types(size_t, char); \

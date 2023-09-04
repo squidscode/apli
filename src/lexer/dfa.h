@@ -112,7 +112,7 @@
     _##st##_##tt##_dfa_t* _##st##_##tt##_dfa_new(st); \
     \
     /* Throws an assert error if the dfa is locked. */ \
-    void _##st##_##tt##_assert_is_not_locked(_##st##_##tt##_dfa_t *dfa) { \
+    inline void _##st##_##tt##_assert_is_not_locked(_##st##_##tt##_dfa_t *dfa) { \
         if (dfa->is_locked) \
             assert(0 == "The dfa is locked and cannot be modified."); \
     } \
@@ -133,25 +133,25 @@
     } \
     \
     void _##st##_##tt##_dfa_add_transition(_##st##_##tt##_dfa_t *dfa, st from, tt transition, st to) { \
-        _##st##_##tt##_assert_is_not_locked(dfa); \
+        /* _##st##_##tt##_assert_is_not_locked(dfa); */ \
         dfa->tmp_trans.state = from; dfa->tmp_trans.transition = transition; \
         /* printf("Transition (%i, %c) hash: %llu\n", dfa->tmp_trans.state, dfa->tmp_trans.transition, dfa->transition_map->hash(dfa->tmp_trans)); */ \
         map_insert(dfa->transition_map, dfa->tmp_trans, to); \
     } \
     \
     size_t _##st##_##tt##_dfa_remove_transition(_##st##_##tt##_dfa_t *dfa, st state, tt transition) { \
-        _##st##_##tt##_assert_is_not_locked(dfa); \
+        /* _##st##_##tt##_assert_is_not_locked(dfa); */ \
         dfa->tmp_trans.state = state; dfa->tmp_trans.transition = transition; \
         return map_erase(dfa->transition_map, dfa->tmp_trans); \
     } \
     \
     void _##st##_##tt##_dfa_add_accepting_state( _##st##_##tt##_dfa_t *dfa, st state) { \
-        _##st##_##tt##_assert_is_not_locked(dfa); \
+        /* _##st##_##tt##_assert_is_not_locked(dfa); */ \
         set_insert(dfa->accept_states, state); \
     } \
     \
     size_t _##st##_##tt##_dfa_remove_accepting_state(_##st##_##tt##_dfa_t *dfa, st state) { \
-        _##st##_##tt##_assert_is_not_locked(dfa); \
+        /* _##st##_##tt##_assert_is_not_locked(dfa); */ \
         return set_erase(dfa->accept_states, state); \
     } \
     \

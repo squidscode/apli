@@ -67,75 +67,91 @@
             free(node); \
         } \
     } \
-    TYPE _##TYPE##_list_get_first(TYPE##_list_t *list) {    \
+    static inline TYPE _##TYPE##_list_get_first(TYPE##_list_t *list) {    \
         return list->_first->_val;                          \
     }                                                       \
-    TYPE _##TYPE##_list_get_last(TYPE##_list_t *list) {     \
+    static inline TYPE _##TYPE##_list_get_last(TYPE##_list_t *list) {     \
         return list->_last->_val;                           \
     }                                                       \
-    void _##TYPE##_list_push_front(TYPE##_list_t *list,     \
+    static inline void _##TYPE##_list_push_front(TYPE##_list_t *list,     \
         TYPE val) {                                         \
         TYPE##_list_node_t *new_node = (TYPE##_list_node_t*)  \
             malloc(sizeof(TYPE##_list_node_t));               \
         new_node->_val  = val;                              \
         new_node->_next = list->_first;                     \
+        /* Non-branching instructions: */ \
+        list->_last = (TYPE##_list_node_t*) \
+                     ((size_t)(list->_size == 0) * (size_t)new_node     \
+                    + (size_t)(list->_size != 0) * (size_t)list->_last); \
+        TYPE##_list_node_t* proxy = (TYPE##_list_node_t*) \
+                         ((size_t)(list->_size == 0) * (size_t)new_node \
+                        + (size_t)(list->_size != 0) * (size_t)list->_first); \
+        proxy->_prev = (TYPE##_list_node_t*) \
+                             ((size_t)(list->_size != 0) * (size_t)new_node \
+                            + (size_t)(list->_size == 0) * (size_t)proxy->_prev); \
         new_node->_prev = NULL;                             \
-        if(list->_size == 0) { \
-            list->_last = new_node; \
-            list->_first = new_node; \
-        } else { \
-            list->_first->_prev = new_node;                     \
-            list->_first        = new_node;                     \
-        } \
-        list->_size += 1;                                   \
+        list->_first = new_node; \
+        ++list->_size;                                   \
     }                                                       \
-    void _##TYPE##_list_push_back(TYPE##_list_t *list,      \
+    static inline void _##TYPE##_list_push_back(TYPE##_list_t *list,      \
         TYPE val) {                                         \
         TYPE##_list_node_t *new_node = (TYPE##_list_node_t*)  \
             malloc(sizeof(TYPE##_list_node_t));               \
         new_node->_val     = val;                           \
-        new_node->_next    = NULL;                          \
         new_node->_prev    = list->_last;                   \
-        if(list->_size == 0) { \
-            list->_last = new_node; \
-            list->_first = new_node; \
-        } else { \
-            list->_last->_next = new_node;                      \
-            list->_last        = new_node;                      \
-        } \
-        list->_size += 1;\
+        list->_first = (TYPE##_list_node_t*) \
+                     ((size_t)(list->_size == 0) * (size_t)new_node     \
+                    + (size_t)(list->_size != 0) * (size_t)list->_first); \
+        TYPE##_list_node_t* proxy = (TYPE##_list_node_t*) \
+                                 ((size_t)(list->_size == 0) * (size_t)new_node \
+                                + (size_t)(list->_size != 0) * (size_t)list->_last); \
+        proxy->_next = (TYPE##_list_node_t*) \
+                             ((size_t)(list->_size != 0) * (size_t)new_node \
+                            + (size_t)(list->_size == 0) * (size_t)proxy->_next); \
+        new_node->_next = NULL; \
+        list->_last = new_node; \
+        ++list->_size;\
     }                                                       \
     void _##TYPE##_list_pop_front(TYPE##_list_t *list) {    \
-        TYPE##_list_node_t *node_after = list->_first->_next; \
+        --list->_size; \
+        TYPE##_list_node_t *node_after = (TYPE##_list_node_t*) \
+             ((size_t)(list->_size == 0) * (size_t)list->_first     \
+            + (size_t)(list->_size != 0) * (size_t)list->_first->_next); \
+        list->_last = (TYPE##_list_node_t*) \
+                     ((size_t)(list->_size == 0) * (size_t)NULL     \
+                    + (size_t)(list->_size != 0) * (size_t)list->_last); \
+        node_after->_prev = NULL; \
         free(list->_first); \
-        list->_size -= 1; \
-        if(list->_size == 0) { \
-            list->_first = NULL; \
-            list->_last = NULL; \
-        } else { \
-            list->_first = node_after; \
-            node_after->_prev = NULL; \
-        } \
+        list->_first = (TYPE##_list_node_t*) \
+                     ((size_t)(list->_size == 0) * (size_t)NULL     \
+                    + (size_t)(list->_size != 0) * (size_t)node_after); \
     }                                                       \
     void _##TYPE##_list_pop_back(TYPE##_list_t *list) {     \
-        TYPE##_list_node_t *node_before = list->_last->_prev;                   \
-        free(list->_last);                           \
-        list->_size -= 1;                                   \
-        if(list->_size == 0) { \
-            list->_first = NULL; \
-            list->_last = NULL; \
-        } else { \
-            list->_last = node_before; \
-            list->_last->_next = NULL; \
-        } \
+        --list->_size; \
+        TYPE##_list_node_t *node_before = (TYPE##_list_node_t*) \
+             ((size_t)(list->_size == 0) * (size_t)list->_last     \
+            + (size_t)(list->_size != 0) * (size_t)list->_last->_prev); \
+        list->_first = (TYPE##_list_node_t*) \
+                     ((size_t)(list->_size == 0) * (size_t)NULL     \
+                    + (size_t)(list->_size != 0) * (size_t)list->_first); \
+        node_before->_next = NULL; \
+        free(list->_last); \
+        list->_last = (TYPE##_list_node_t*) \
+                     ((size_t)(list->_size == 0) * (size_t)NULL     \
+                    + (size_t)(list->_size != 0) * (size_t)node_before); \
     }                                                       \
     void _free_##TYPE##_list(TYPE##_list_t *list) {         \
-        while(list->_size > 0) {                            \
-            list->_fns->_pop_front(list);                         \
+        TYPE##_list_node_t *ptr = list->_first; \
+        TYPE##_list_node_t *tmp;                \
+        while(list->_size) {                            \
+            tmp = ptr->_next; \
+            free(ptr); \
+            ptr = tmp; \
+            --list->_size; \
         }                                                   \
         free(list);                                         \
     }                                                       \
-    size_t _##TYPE##_list_get_size(TYPE##_list_t *list) {   \
+    static inline size_t _##TYPE##_list_get_size(TYPE##_list_t *list) {   \
         return list->_size; \
     } \
     TYPE##_list_fns_t TYPE##_list_fns = {                     \

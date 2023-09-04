@@ -7,7 +7,7 @@
 #include "list.h"
 
 // Macros
-#define RESIZE_RATIO    0.80
+#define RESIZE_RATIO    0.90
 
 /**
  *
@@ -89,7 +89,7 @@
         char *ptr = (char*) ((void*) &key); \
         size_t hash = 0UL; \
         for(size_t i = 0; i < size; ++i) { \
-            hash ^= ((255UL & ptr[i]) << (8 * offset++)); \
+            hash ^= ((255UL & ptr[i]) << (offset++ << 3)); \
             offset %= mod; \
         } \
         return hash; \
@@ -100,10 +100,11 @@
         size_t size = (sizeof(key_type) / sizeof(char)); \
         char *ptr1 = (char*) ((void*) &key1); \
         char *ptr2 = (char*) ((void*) &key2); \
+        size_t ret = 1UL; \
         for(size_t i = 0; i < size; ++i) { \
-            if(ptr1[i] != ptr2[i]) return 0; \
+            ret &= (ptr1[i] == ptr2[i]); \
         } \
-        return 1; \
+        return ret; \
     } \
     \
     /* Allocates the (hash, key, value) into the appropriate bucket in the map. */ \
@@ -129,7 +130,6 @@
         size_t new_cap = (buckets_size << 1); \
         vector_resize_val(map->buckets, new_cap, NULL); \
         for(size_t i = 0; i < buckets_size; ++i) { \
-            size_t mask = (new_cap - 1); \
             _##key_type##_##value_type##_map_match_list_t bucket = vector_get(map->buckets, i); \
             if(bucket == NULL) \
                 continue; \

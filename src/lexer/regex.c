@@ -1,9 +1,11 @@
 #include "dfa.h"
-#include "nfa.h"
 #include <stdio.h>
 // #include "regex.h"
 
+#ifdef UNOPTIMIZED
+#include "nfa.h"
 init_regex();
+#endif
 define_list(_regex_match_t);
 
 // Have the chunk size start at 100, but eventually narrow down using the MLE of the exponential pdf function:
@@ -40,41 +42,39 @@ typedef struct _regex_string_segment_ {
 define_list(_regex_string_segment_t);
 
 /* Forward declarations for the _regex_compile function */
-size_t _regex_parse(Nfa(size_t, char)*, size_t, const char*, size_t);
+size_t _regex_parse(Vector(char)*, Nfa(size_t, char)*, size_t, const char*, size_t);
 List(_regex_string_segment_t)* _regex_split_by_capturing_groups(const char* ptr, size_t size);
 List(_regex_string_segment_t)* _regex_split_by_tokens(const char* ptr, size_t size);
 /* NOTE: The interval is defined as [start, end). The character at ptr[end] is not counted. */
 _regex_string_segment_t _regex_string_segment_from(const char *ptr, size_t start, size_t end);
-size_t _regex_expand(Nfa(size_t, char)*, size_t, const char*, size_t);
-size_t _regex_expand_with_root_tokens(Nfa(size_t, char)*, size_t, const char*, size_t);
-size_t _regex_expand_token(Nfa(size_t, char)*, size_t, const char*, size_t);
+size_t _regex_expand(Vector(char)*, Nfa(size_t, char)*, size_t, const char*, size_t);
+size_t _regex_expand_with_root_tokens(Vector(char) *alphabet, Nfa(size_t, char)*, size_t, const char*, size_t);
+size_t _regex_expand_token(Vector(char)*, Nfa(size_t, char)*, size_t, const char*, size_t);
 size_t _regex_string_segment_equals(const char*, _regex_string_segment_t segment);
 size_t _regex_is_special_character(_regex_string_segment_t);
-void _regex_add_all_alphabet_transitions_between(Nfa(size_t, char) *nfa, size_t state1, size_t state2);
+void _regex_add_all_alphabet_transitions_between(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t state1, size_t state2);
 void _debug_print_regex_string_segment_t(_regex_string_segment_t rss);
-void _regex_expand_root_at_start_token(Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end);
-void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_segment_t) *tokens,
+void _regex_expand_root_at_start_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end);
+void _regex_expand_non_root_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, List(_regex_string_segment_t) *tokens,
     _regex_string_segment_t *current, size_t *next_start, size_t *end);
-void _regex_expand_root_at_end_token(Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end);
+void _regex_expand_root_at_end_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end);
 void _regex_process_repeat_token(size_t *from, size_t *to, const char *raw_regex, size_t raw_regex_size);
 
 // The alphabet set is global, and I know this is bad design, but it's not `extern' so it's fine! (irony)
-// TODO pass the alphabet set into the functions
-Set(char) *alphabet;
 
 _regex_t* _regex_compile(_regex_t *regex) {
     size_t regex_size = strlen(regex->raw_regex);
     regex->nfa = nfa_new(size_t, char, 0);
-    alphabet = set_new(char);
+    Vector(char) *alphabet = vector_new(char);
     for(int i = 0; i < 256; ++i) {
-        set_insert(alphabet, i);
+        vector_push_back(alphabet, i);
     }
-    size_t end = _regex_parse(regex->nfa, 0, regex->raw_regex, regex_size);
+    size_t end = _regex_parse(alphabet, regex->nfa, 0, regex->raw_regex, regex_size);
     // printf("[`%s`] # of nfa states: %zu, ", regex->raw_regex, end + 1);
     nfa_add_accept_state(regex->nfa, end);
     Dfa(size_t_set_ptr_t, char) *dfa = nfa_to_dfa(regex->nfa, alphabet);
     // printf("# of dfa transitions: %zu\n", map_size(dfa->transition_map));
-    set_free(alphabet);
+    vector_free(alphabet);
     Dfa(size_t, char) *compressed_dfa = dfa_compress(dfa); // added step
     free(dfa);
     regex->fdfa = dfa_to_fdfa(compressed_dfa);
@@ -87,7 +87,7 @@ _regex_t* _regex_compile(_regex_t *regex) {
  */
 
 // IF begin_expansion_state == 0, then _regex_expand_with_root_tokens is called, otherwise, _regex_expand is called.
-size_t _regex_parse(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
+size_t _regex_parse(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin_expansion_state,
     const char* raw_regex, size_t raw_regex_size) {
     List(_regex_string_segment_t) *capturing_groups = _regex_split_by_capturing_groups(raw_regex, raw_regex_size);
     List(size_t) *capturing_groups_ends = list_new(size_t);
@@ -96,7 +96,7 @@ size_t _regex_parse(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
     size_t end = begin_expansion_state - 1;
     // Using a function pointer here means no 'if' statement inside the while loop. This is faster.
     // printf("begin_expansion_state: %zu\n", begin_expansion_state);
-    size_t (*fn)(_size_t_char_nfa_t *, size_t, const char *, size_t) = (0 == begin_expansion_state) 
+    size_t (*fn)(Vector(char)*, _size_t_char_nfa_t *, size_t, const char *, size_t) = (0 == begin_expansion_state) 
         ? &_regex_expand_with_root_tokens 
         : &_regex_expand;
     while(0 < list_size(capturing_groups)) {
@@ -104,7 +104,7 @@ size_t _regex_parse(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
         // _debug_print_regex_string_segment_t(segment);
         nfa_add_epsilon_transition(nfa, begin_expansion_state, next_start);
         list_push_back(capturing_groups_ends,
-            (end = (*fn)(nfa, next_start, segment.ptr, segment.length)));
+            (end = (*fn)(alphabet, nfa, next_start, segment.ptr, segment.length)));
         next_start = end + 1;
         list_pop_front(capturing_groups);
     }
@@ -162,7 +162,7 @@ size_t _regex_string_segment_equals(const char* str, _regex_string_segment_t seg
 }
 
 // WITH ROOT TOKENS (^ and $)
-size_t _regex_expand_with_root_tokens(Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
+size_t _regex_expand_with_root_tokens(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
     /* the raw_regex string must not have multiple segments (ie. there are no level 0 alternation signs). */
     List(_regex_string_segment_t) *tokens = _regex_split_by_tokens(raw_regex, raw_regex_size);
     size_t next_start = begin_expansion_state;
@@ -171,16 +171,16 @@ size_t _regex_expand_with_root_tokens(Nfa(size_t, char) *nfa, size_t begin_expan
     _regex_string_segment_t current = list_get_front(tokens);
     // printf("[expand]: "); _debug_print_regex_string_segment_t(current);
     list_pop_front(tokens);
-    _regex_expand_root_at_start_token(nfa, &current, &next_start, &end);
+    _regex_expand_root_at_start_token(alphabet, nfa, &current, &next_start, &end);
     if(_regex_string_segment_equals("^", current))
         (current = list_get_front(tokens), list_pop_front(tokens));
-    _regex_expand_non_root_token(nfa, tokens, &current, &next_start, &end);
-    _regex_expand_root_at_end_token(nfa, &current, &next_start, &end);
+    _regex_expand_non_root_token(alphabet, nfa, tokens, &current, &next_start, &end);
+    _regex_expand_root_at_end_token(alphabet, nfa, &current, &next_start, &end);
     return end;
 }
 
 // WITHOUT ROOT TOKENS.
-size_t _regex_expand(Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
+size_t _regex_expand(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
     /* the raw_regex string must not have multiple segments (ie. there are no level 0 alternation signs). */
     List(_regex_string_segment_t) *tokens = _regex_split_by_tokens(raw_regex, raw_regex_size);
     size_t next_start = begin_expansion_state;
@@ -189,21 +189,21 @@ size_t _regex_expand(Nfa(size_t, char) *nfa, size_t begin_expansion_state, const
     _regex_string_segment_t current = list_get_front(tokens);
     // printf("[expand]: "); _debug_print_regex_string_segment_t(current);
     list_pop_front(tokens);
-    _regex_expand_non_root_token(nfa, tokens, &current, &next_start, &end);
+    _regex_expand_non_root_token(alphabet, nfa, tokens, &current, &next_start, &end);
     return end;
 }
 
-void _regex_expand_root_at_start_token(Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end) {
+void _regex_expand_root_at_start_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end) {
     if (!_regex_string_segment_equals("^", *current)) { // if NOT rooted to the beginning
         nfa_add_epsilon_transition(nfa, (*next_start), (*next_start) + 1);
-        _regex_add_all_alphabet_transitions_between(nfa, (*next_start) + 1, (*next_start) + 1);
+        _regex_add_all_alphabet_transitions_between(alphabet, nfa, (*next_start) + 1, (*next_start) + 1);
         nfa_add_epsilon_transition(nfa, (*next_start) + 1, (*next_start) + 2);
         *next_start = (*next_start) + 2;
         *end = *next_start;
     }
 }
 
-void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_segment_t) *tokens,
+void _regex_expand_non_root_token(Vector(char)* alphabet, Nfa(size_t, char) *nfa, List(_regex_string_segment_t) *tokens,
     _regex_string_segment_t *current, size_t *next_start, size_t *end) {
     while (0 < list_size(tokens)) {
         _regex_string_segment_t next = list_get_front(tokens);
@@ -212,20 +212,20 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
             // do nothing
         } else if (_regex_string_segment_equals("*", next)) {
             nfa_add_epsilon_transition(nfa, (*next_start), (*next_start)+1);
-            *end = _regex_expand_token(nfa, (*next_start)+1, current->ptr, current->length);
+            *end = _regex_expand_token(alphabet, nfa, (*next_start)+1, current->ptr, current->length);
             nfa_add_epsilon_transition(nfa, (*end), (*next_start) + 1);
             nfa_add_epsilon_transition(nfa, (*end), (*end)+1);
             nfa_add_epsilon_transition(nfa, (*next_start), (*end)+1);
             *end = (*end) + 1;
         } else if (_regex_string_segment_equals("?", next)) {
             nfa_add_epsilon_transition(nfa, (*next_start), (*next_start)+1);
-            *end = _regex_expand_token(nfa, (*next_start)+1, current->ptr, current->length);
+            *end = _regex_expand_token(alphabet, nfa, (*next_start)+1, current->ptr, current->length);
             nfa_add_epsilon_transition(nfa, (*end), (*end)+1);
             nfa_add_epsilon_transition(nfa, (*next_start), (*end)+1);
             *end = (*end) + 1;
         } else if (_regex_string_segment_equals("+", next)) {
             nfa_add_epsilon_transition(nfa, (*next_start), (*next_start)+1);
-            *end = _regex_expand_token(nfa, (*next_start)+1, current->ptr, current->length);
+            *end = _regex_expand_token(alphabet, nfa, (*next_start)+1, current->ptr, current->length);
             nfa_add_epsilon_transition(nfa, (*end), (*end)+1);
             nfa_add_epsilon_transition(nfa, (*end), (*next_start) + 1);
             *end = (*end) + 1;
@@ -236,7 +236,7 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
             nfa_add_epsilon_transition(nfa, (*next_start), (*next_start)+1);
             *next_start = (*next_start) + 1;
             for(size_t i = 0; i < from; ++i) {
-                *end = _regex_expand_token(nfa, *next_start, current->ptr, current->length);
+                *end = _regex_expand_token(alphabet, nfa, *next_start, current->ptr, current->length);
                 *next_start = *end;
             }
             if (0 != to + 1) {
@@ -245,7 +245,7 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
                 List(size_t) *list_of_ends = list_new(size_t);
                 list_push_front(list_of_ends, *next_start);
                 for(size_t i = from; i < to; ++i) {
-                    *end = _regex_expand_token(nfa, *next_start, current->ptr, current->length);
+                    *end = _regex_expand_token(alphabet, nfa, *next_start, current->ptr, current->length);
                     list_push_back(list_of_ends, *end);
                     *next_start = *end;
                 }
@@ -256,14 +256,14 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
                 }
             } else { // the '*' expansion:
                 nfa_add_epsilon_transition(nfa, (*next_start), (*next_start)+1);
-                *end = _regex_expand_token(nfa, (*next_start)+1, current->ptr, current->length);
+                *end = _regex_expand_token(alphabet, nfa, (*next_start)+1, current->ptr, current->length);
                 nfa_add_epsilon_transition(nfa, (*end), (*next_start) + 1);
                 nfa_add_epsilon_transition(nfa, (*end), (*end)+1);
                 nfa_add_epsilon_transition(nfa, (*next_start), (*end)+1);
                 *end = (*end) + 1;
             }
         } else {
-            (*end) = _regex_expand_token(nfa, (*next_start), current->ptr, current->length);
+            (*end) = _regex_expand_token(alphabet, nfa, (*next_start), current->ptr, current->length);
         }
         *next_start = (*end);
         *current = next;
@@ -271,7 +271,7 @@ void _regex_expand_non_root_token(Nfa(size_t, char) *nfa, List(_regex_string_seg
     }
     if (!_regex_is_special_character(*current) 
      && !_regex_string_segment_equals("$", *current)) { // NOT a special character and not '$'
-        (*end) = _regex_expand_token(nfa, (*next_start), current->ptr, current->length);
+        (*end) = _regex_expand_token(alphabet, nfa, (*next_start), current->ptr, current->length);
         *next_start = (*end);
     }
 }
@@ -295,10 +295,10 @@ void _regex_process_repeat_token(size_t *from, size_t *to, const char *raw_regex
         assert(0 != (*to = atoi(buf)));
 }
 
-void _regex_expand_root_at_end_token(Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end) {
+void _regex_expand_root_at_end_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, _regex_string_segment_t *current, size_t *next_start, size_t *end) {
     if (!_regex_string_segment_equals("$", *current)) { // if NOT rooted to the end
         nfa_add_epsilon_transition(nfa, *next_start, *next_start + 1);
-        _regex_add_all_alphabet_transitions_between(nfa, *next_start + 1, *next_start + 1);
+        _regex_add_all_alphabet_transitions_between(alphabet, nfa, *next_start + 1, *next_start + 1);
         nfa_add_epsilon_transition(nfa, *next_start + 1, *next_start + 2);
         *next_start = *next_start + 2;
         *end = *next_start;
@@ -312,7 +312,7 @@ size_t _regex_is_special_character(_regex_string_segment_t rss) {
             || (0 < rss.length && '{' == rss.ptr[0] && '}' == rss.ptr[rss.length - 1]);
 }
 
-size_t _regex_expand_token(Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
+size_t _regex_expand_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
     if(0 >= raw_regex_size)
         assert(0 == "Invalid regex_segment size.");
     if (1 == raw_regex_size) {
@@ -329,14 +329,14 @@ size_t _regex_expand_token(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
             nfa_add_transition(nfa, begin_expansion_state, raw_regex[1], begin_expansion_state + 1);
         return begin_expansion_state + 1;
     } else if ('(' == raw_regex[0] && ')' == raw_regex[raw_regex_size - 1]) {
-        return _regex_parse(nfa, begin_expansion_state, &raw_regex[1], raw_regex_size - 2);
+        return _regex_parse(alphabet, nfa, begin_expansion_state, &raw_regex[1], raw_regex_size - 2);
     } else if ('[' == raw_regex[0] && ']' == raw_regex[raw_regex_size - 1]) {
         size_t start_index = 1;
         char inverted_flag = 0;
         if('^' == raw_regex[1]) {
             start_index = 2;
             inverted_flag = 1;
-            _regex_add_all_alphabet_transitions_between(nfa, begin_expansion_state, begin_expansion_state + 1);
+            _regex_add_all_alphabet_transitions_between(alphabet, nfa, begin_expansion_state, begin_expansion_state + 1);
         }
         size_t end_index = raw_regex_size - 1;
         for(size_t ind = start_index; ind < end_index; ++ind) {
@@ -363,13 +363,11 @@ size_t _regex_expand_token(Nfa(size_t, char) *nfa, size_t begin_expansion_state,
     assert(0 == "Invalid regex format.");
 }
 
-void _regex_add_all_alphabet_transitions_between(Nfa(size_t, char) *nfa, size_t state1, size_t state2) {
-    List(char) *alphabet_chars = set_get_list(alphabet);
-    while(0 < list_size(alphabet_chars)) {
-        nfa_add_transition(nfa, state1, list_get_front(alphabet_chars), state2);
-        list_pop_front(alphabet_chars);
+void _regex_add_all_alphabet_transitions_between(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t state1, size_t state2) {
+    size_t alphabet_sz = vector_size(alphabet);
+    for(size_t i = 0; i < alphabet_sz; ++i) {
+        nfa_add_transition(nfa, state1, vector_get(alphabet, i), state2);
     }
-    list_free(alphabet_chars);
 }
 
 /* Invariant: the size of the list that is returned is at least 1. */
@@ -508,9 +506,11 @@ _regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const 
     size_t left = start; size_t right = right_bound;
     while(1 < right - left) {
         size_t optimal_size = max(2, (right - left) / search_chunk_size);
-        List(size_t) *mids = _regex_get_mids(optimal_size, left, right);
-        while(list_size(mids)) {
-            size_t mid = list_get_front(mids); list_pop_front(mids);
+        // List(size_t) *mids = _regex_get_mids(optimal_size, left, right);
+        // while(list_size(mids)) {
+        for(size_t i = 0; i < optimal_size - 1; ++i) {
+            // size_t mid = list_get_front(mids); list_pop_front(mids);
+            size_t mid = ((optimal_size - i - 1) * left + (i + 1) * right) / optimal_size;
             str_list = _regex_construct_list_with_interval(str, start, mid);
             size_t result = call(regex->fdfa, list_get_iterator(str_list));
             0 == result ? (left = mid) : (right = mid);
@@ -518,7 +518,8 @@ _regex_match_t _regex_find_left_most_match_binary_search(_regex_t *regex, const 
             if (1 == result)
                 break;
         }
-        list_free(mids);
+        // }
+        // list_free(mids);
     }
     right_bound = left;
 
@@ -631,9 +632,6 @@ List(_regex_match_t)* _regex_find_all_regex_matches_exponential_pdf(_regex_t *re
     // MLE = (n - 2) / SUM(X)
     while(next_match.begin != -1 && next_match.length != -1) { // a -1 for both start and end indicates a non-match
         list_push_back(matches, next_match);
-        if(next_match.length == 0) // break if it is a zero length match
-            break;
-        
         size_t prev_end = next_match.begin + 1;
         size_t predicted_chunk_size = (2 < num_deltas && sum_of_deltas / (num_deltas - 2) < SEARCH_CHUNK_SIZE)
             ? sum_of_deltas / (num_deltas - 2)

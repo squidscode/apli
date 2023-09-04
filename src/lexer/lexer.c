@@ -26,11 +26,32 @@ void _token_rules_add_rule(TokenRules *tr, const char *name, size_t pre, size_t 
     vector_push_back(tr->rules, new_tr_instance);
 }
 
+#ifdef MULTITHREADED
+    #include "pthread.h"
+    define_vector(pthread_t);
+    void *compile_regex_thread_fn(void *regex) {
+        regex_compile((_regex_t*) regex);
+        return NULL;
+    }
+#endif
+
 void _token_rules_compile(TokenRules *tr) {
+#ifdef MULTITHREADED
+    size_t size = vector_size(tr->rules);
+    pthread_t *threads = (pthread_t*) malloc(sizeof(pthread_t) * size);
+    for(size_t i = 0; i < size; ++i) {
+        pthread_create(&threads[i], NULL, compile_regex_thread_fn, (void*) vector_get(tr->rules, i).regex);
+    }
+    for(size_t i = 0; i < size; ++i) {
+        pthread_join(threads[i], NULL);
+    }
+    free(threads);
+#else
     size_t size = vector_size(tr->rules);
     for(size_t i = 0; i < size; ++i) {
         regex_compile(vector_get(tr->rules, i).regex);
     }
+#endif
 }
 
 size_t _token_rules_matches_vector_has_matches(Vector(_matches_ptr) *matches);

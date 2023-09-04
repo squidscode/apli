@@ -78,7 +78,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     define_set(st##_set_ptr_t); \
     init_dfa_types(st##_set_ptr_t, tt); \
     define_dfa(st##_set_ptr_t, tt); \
-    define_set(tt)
+    define_vector(tt)
 
 #define define_nfa(st, tt) \
     struct _##st##_##tt##_nfa_; \
@@ -92,7 +92,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         size_t (*remove_alphabet_transition)(struct _##st##_##tt##_nfa_*, st, st); \
         void (*add_accept_state)(struct _##st##_##tt##_nfa_*, st); \
         size_t (*remove_accept_state)(struct _##st##_##tt##_nfa_*, st); \
-        Dfa(st##_set_ptr_t, tt)* (*nfa_to_dfa)(struct _##st##_##tt##_nfa_*, Set(tt)*); \
+        Dfa(st##_set_ptr_t, tt)* (*nfa_to_dfa)(struct _##st##_##tt##_nfa_*, Vector(tt)*); \
         void (*destroy)(struct _##st##_##tt##_nfa_*); \
     }; \
     \
@@ -218,22 +218,19 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
         list_free(list_of_states); \
     } \
     \
-    void _##st##_##tt##_add_all_transitions_to_nfa(_##st##_##tt##_nfa_t *nfa, Set(tt) *alphabet_set, st from, Set(st) *to) { \
+    void _##st##_##tt##_add_all_transitions_to_nfa(_##st##_##tt##_nfa_t *nfa, Vector(tt) *alphabet_set, st from, Set(st) *to) { \
         List(st) *to_states = set_get_list(to); \
-        List(tt) *alphabet_transitions = set_get_list(alphabet_set); \
         while(0 < list_size(to_states)) { \
-            Iterator(tt) *alphabet_iter = list_get_iterator(alphabet_transitions); \
-            while(NULL != alphabet_iter) { \
-                nfa_add_transition(nfa, from, iter_val(alphabet_iter), list_get_front(to_states)); \
-                alphabet_iter = iter_next(alphabet_iter); \
+            size_t alphabet_size = vector_size(alphabet_set); \
+            for(size_t i = 0; i < alphabet_size; ++i) { \
+                nfa_add_transition(nfa, from, vector_get(alphabet_set, i), list_get_front(to_states)); \
             } \
             list_pop_front(to_states); \
         } \
         list_free(to_states); \
-        list_free(alphabet_transitions); \
     } \
     \
-    void _##st##_##tt##_replace_all_transitions_with_alphabet_set_transitions(_##st##_##tt##_nfa_t *nfa, Set(tt) *alphabet_set) { \
+    void _##st##_##tt##_replace_all_transitions_with_alphabet_set_transitions(_##st##_##tt##_nfa_t *nfa, Vector(tt) *alphabet_set) { \
         List(_##st##__##st##_##tt##_nfa_transition_map_t_map_match_t) *state_transition_matches = map_get_list(nfa->transition_map); \
         while(0 < list_size(state_transition_matches)) { \
             List(__##tt##_nfa_transition_t_##st##_set_ptr_t_map_match_t) *transition_state_matches = map_get_list(map_at(nfa->transition_map, \
@@ -369,7 +366,7 @@ typedef enum _nfa_transition_type_ {NONE, ALL} nfa_transition_type;
     \
     /* Converts an NFA into a DFA using the powerset algorithm. This mutates the current NFA, so this algorithm can \
        only be called *once*. */ \
-    Dfa(st##_set_ptr_t, tt)* _##st##_##tt##_nfa_to_dfa(_##st##_##tt##_nfa_t *nfa, Set(tt) *alphabet_set) { \
+    Dfa(st##_set_ptr_t, tt)* _##st##_##tt##_nfa_to_dfa(_##st##_##tt##_nfa_t *nfa, Vector(tt) *alphabet_set) { \
         Map(st, st##_set_ptr_t) *epsilon_reachable_map = map_new(st, st##_set_ptr_t); \
         _##st##_##tt##_fill_epsilon_reachable_map(nfa, epsilon_reachable_map); \
         _##st##_##tt##_replace_all_transitions_with_alphabet_set_transitions(nfa, alphabet_set); \

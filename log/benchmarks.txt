@@ -1,13 +1,38 @@
  Current best:
  resources
   └  features
-    └  lexical_scoping.lisp 0.2 ± 0.008 seconds (n=23)
-    └  recursion.lisp 0.186 ± 0.001 seconds (n=31)
+    └  lexical_scoping.lisp 0.137 ± 0.004 seconds (n=29)
+    └  recursion.lisp 0.132 ± 0.001 seconds (n=41)
   └  simple
-    └  arithmetic.lisp 0.194 ± 0.003 seconds (n=30)
-    └  fibonacci.lisp 0.212 ± 0.007 seconds (n=27)
-    └  hello_world.lisp 0.187 ± 0.006 seconds (n=33)
-    └  factorial.lisp 0.208 ± 0.008 seconds (n=32)
+    └  arithmetic.lisp 0.135 ± 0.002 seconds (n=44)
+    └  fibonacci.lisp 0.134 ± 0.001 seconds (n=44)
+    └  hello_world.lisp 0.133 ± 0.002 seconds (n=44)
+    └  factorial.lisp 0.132 ± 0.001 seconds (n=44)
   └  non-features
-    └  mutual_recursion.lisp 0.219 ± 0.009 seconds (n=27)
+    └  mutual_recursion.lisp 0.149 ± 0.009 seconds (n=44)
 
+--- After bitset optimization + ARENA_ALLOCATOR ---
+ resources
+  └  features
+    └  lexical_scoping.lisp 0.095 ± 0.003 seconds (n=37)
+    └  recursion.lisp 0.089 ± 0.0 seconds (n=63)
+  └  simple
+    └  arithmetic.lisp 0.091 ± 0.001 seconds (n=63)
+    └  fibonacci.lisp 0.091 ± 0.001 seconds (n=65)
+    └  hello_world.lisp 0.099 ± 0.004 seconds (n=68)
+    └  factorial.lisp 0.091 ± 0.001 seconds (n=63)
+  └  non-features
+    └  mutual_recursion.lisp 0.091 ± 0.001 seconds (n=62)
+
+--- MULTITHREADED defined ---
+ resources
+  └  features
+    └  lexical_scoping.lisp 0.053 ± 0.001 seconds (n=52)
+    └  recursion.lisp 0.053 ± 0.0 seconds (n=110)
+  └  simple
+    └  arithmetic.lisp 0.055 ± 0.001 seconds (n=53)
+    └  fibonacci.lisp 0.056 ± 0.001 seconds (n=92)
+    └  hello_world.lisp 0.051 ± 0.0 seconds (n=115)
+    └  factorial.lisp 0.051 ± 0.0 seconds (n=114)
+  └  non-features
+    └  mutual_recursion.lisp 0.055 ± 0.001 seconds (n=104)

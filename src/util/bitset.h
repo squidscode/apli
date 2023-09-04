@@ -24,41 +24,57 @@
 typedef struct _bitset_ _bitset_t;
 
 define_list(size_t);
-define_set(size_t);
 
-#define BITSET_SIZE             (4)
+#define BITSET_SIZE             (1)
 #define BITSET_CHUNK_SIZE       (3 + (sizeof(size_t) >> 2))
 #define BITSET_INDEX(ind)       (ind >> BITSET_CHUNK_SIZE)
 #define BITSET_OFFSET(ind)      (1UL << (ind & ((1 << BITSET_CHUNK_SIZE) - 1)))
 
+typedef struct _bitset_fns_ _bitset_fns_t;
 struct _bitset_ {
     size_t *arr;
     size_t size;
+    _bitset_fns_t *fns;
     void *hash;             // ignore
     void *value_equals;     // ignore
 };
+typedef struct _bitset_ _bitset_t;
 
-Set(size_t)* _bitset_new();
+typedef struct _bitset_fns_ {
+    void (*insert)(_bitset_t*, size_t);
+    size_t (*erase)(_bitset_t*, size_t);
+    size_t (*count)(_bitset_t*, size_t);
+    size_t (*size)(_bitset_t*);
+    size_t (*equals)(_bitset_t*, _bitset_t*);
+    List(size_t)* (*get_element_list)(_bitset_t*);
+    _bitset_t* (*_union)(_bitset_t*, _bitset_t*);
+    void (*destroy)(_bitset_t*);
+} _bitset_fns_t;
 
-#define GET_BS(bs, set)    _bitset_t* bs = (_bitset_t*) set->delegate
+_bitset_t* _bitset_new();
 
-static inline void _bitset_insert_(Set(size_t)* set, size_t ind) {
-    GET_BS(bs, set);
+static inline size_t _bitset_collection_hash(_bitset_t *bs) {
+    size_t hash_total = 0;
+    for(size_t i = 0; i < bs->size; ++i)
+        hash_total ^= bs->arr[i];
+    return hash_total;
+}
+
+static inline void _bitset_insert_(_bitset_t* bs, size_t ind) {
     bs->arr[BITSET_INDEX(ind)] |= BITSET_OFFSET(ind);
 }
 
-static inline size_t _bitset_erase_(Set(size_t)* set, size_t ind) {
-
+static inline size_t _bitset_erase_(_bitset_t* bs, size_t ind) {
     size_t n = bs->arr[BITSET_INDEX(ind)];
     bs->arr[BITSET_INDEX(ind)] &= ~BITSET_OFFSET(ind);
     return !!(n & BITSET_OFFSET(ind));
 }
 
-static inline size_t _bitset_count_(Set(size_t)* set, size_t ind) {
+static inline size_t _bitset_count_(_bitset_t* bs, size_t ind) {
     return !!(bs->arr[BITSET_INDEX(ind)] & BITSET_OFFSET(ind));
 }
 
-static inline size_t _bitset_size_(Set(size_t)* set) {
+static inline size_t _bitset_size_(_bitset_t* bs) {
     size_t total = 0;
     for(size_t i = 0; i < bs->size; ++i) {
         size_t n = bs->arr[i];
@@ -70,7 +86,7 @@ static inline size_t _bitset_size_(Set(size_t)* set) {
     return total;
 }
 
-static inline size_t _bitset_equals_(Set(size_t)* set1, Set(size_t)* set2) {
+static inline size_t _bitset_equals_(_bitset_t* bs1, _bitset_t* bs2) {
     if(bs1->size != bs2->size)
         return 0;
     size_t sz = bs1->size;
@@ -80,7 +96,7 @@ static inline size_t _bitset_equals_(Set(size_t)* set1, Set(size_t)* set2) {
     return 1;
 }
 
-static inline List(size_t)* _bitset_get_element_list(Set(size_t)* set) {
+static inline List(size_t)* _bitset_get_element_list(_bitset_t* bs) {
     List(size_t) *lst = list_new(size_t);
     for(size_t i = 0; i < bs->size; ++i)
         for(size_t pow = 0; pow < (1 << BITSET_CHUNK_SIZE); ++pow)
@@ -89,19 +105,18 @@ static inline List(size_t)* _bitset_get_element_list(Set(size_t)* set) {
     return lst;
 }
 
-static inline Set(size_t)* _bitset_union_(Set(size_t)* set1, Set(size_t)* set2) {
-    List(size_t) *lst = list_new(size_t);
+static inline _bitset_t* _bitset_union_(_bitset_t* bs1, _bitset_t* bs2) {
     for(size_t i = 0; i < bs2->size; ++i)
         bs1->arr[i] |= bs2->arr[i];
-    return set1;
+    return bs1;
 }
 
-static inline void _bitset_free_(Set(size_t)* set) {
+static inline void _bitset_free_(_bitset_t* bs) {
     free(bs->arr);
     free(bs);
 }
 
-_size_t_set_fns_t _bitset_set_v_table_ = { 
+_bitset_fns_t _bitset_set_v_table_ = { 
     &_bitset_insert_, 
     &_bitset_erase_, 
     &_bitset_count_, 
@@ -114,17 +129,15 @@ _size_t_set_fns_t _bitset_set_v_table_ = {
 
 
 
-Set(size_t)* _bitset_new() {
-    Set(size_t) *set = set_new(size_t);
-    set->delegate = malloc(sizeof(_bitset_t));
-    _bitset_t *bs = (_bitset_t*) set->delegate;
+_bitset_t* _bitset_new() {
+    _bitset_t *bs = (_bitset_t*) malloc(sizeof(_bitset_t));
     bs->arr = (size_t*) malloc(sizeof(size_t) * BITSET_SIZE);
     for(size_t i = 0; i < BITSET_SIZE; ++i) {
         bs->arr[i] = 0UL;
     }
     bs->fns = &_bitset_set_v_table_;
     bs->size = BITSET_SIZE;
-    return set;
+    return bs;
 }
 
 #endif

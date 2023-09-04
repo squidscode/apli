@@ -1,27 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-size_t bytes_allocated = 0;
-void *beginning_of_block = NULL;
-
-// 4 gigabytes of memory.
-#define MAX_SIZE 4000000000
-// #define MAX_SIZE 4000000
-
-void *_malloc(size_t sz) {
-    void *tmp = beginning_of_block;
-    beginning_of_block += sz;
-    return tmp;
-}
-
-void _initialize_memory() {
-    beginning_of_block = malloc(MAX_SIZE);
-}
-
-#define malloc(sz)  (_malloc(sz))
-#define free(ptr)
-
+#include "arena.c"
 #include "../../src/apli.h"
 
 #define APLI_EVAL_ARGUMENTS     environment *env
@@ -154,7 +134,7 @@ void print_frame(frame f);
 
 
 int main(int argc, char **argv) {
-    _initialize_memory(); // arena allocator.
+    _initialize_memory();
 
     _bnf_rules_t *bnf_rules = (_bnf_rules_new());
     _token_rules_t *token_rules = (_token_rules_fns_impl._new());
@@ -162,7 +142,8 @@ int main(int argc, char **argv) {
     eval_fns = (_apli_function_name_apli_function_reference_new_map());
     ((eval_fns)->key_eq = (&str_eq));
     ((eval_fns)->hash = (&str_hash));
-    parser_type parser_type_inst = LEFT_TO_RIGHT;;
+    parser_type parser_type_inst = LEFT_TO_RIGHT;
+
 
     // If we didn't parse right to left, then the parser errors on "(A B C)". This is due to the
     // lack of a `s_expressions := s_expressions s_expressions` rule. See the README for more information.
@@ -217,6 +198,8 @@ int main(int argc, char **argv) {
     List(_token_t) *tokens = token_rules_tokenize(token_rules, input);
     _token_rules_ignore_token(tokens, "COMMENT");
     parse_tree_result = bnf_rules_construct_parse_tree(bnf_rules, tokens, parser_type_inst);
+
+    // printf("bytes_allocated %zu\n", bytes_allocated);
 
     // DRY_RUN wil only run the lexing and parsing steps. Since the evaluation is the
     // user's responsibility, I will be focusing on optimizing the dry run.

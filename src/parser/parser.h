@@ -86,7 +86,9 @@ typedef struct _terminal_ _terminal_t;
 static const _terminal_t null_terminal = {-1, "", 0};
 
 _terminal_t _terminal_from(char is_terminal, const char *name, size_t name_length) {
+#ifdef SAFE
     assert(name[name_length] == '\0');
+#endif
     _terminal_t term = {is_terminal, name, name_length};
     return term;
 }
@@ -273,9 +275,18 @@ _terminal_tree_t *_bnf_rules_construct_terminal_tree(_bnf_rules_t *bnf_rules, si
     return tree;
 }
 
+// DP table to cache results of the hash function, should result in a speedup.
+define_map(_void_ptr_, size_t);
+Map(_void_ptr_, size_t) *_terminal_tree_key_hash_dp_table = NULL;
 static inline size_t _terminal_tree_key_hash(_terminal_t terminal) {
+    void* vd_p = (void*) &terminal.name;
+    if(_terminal_tree_key_hash_dp_table != NULL && map_count(_terminal_tree_key_hash_dp_table, vd_p)) {
+        return map_at(_terminal_tree_key_hash_dp_table, vd_p);
+    } else {
+        _terminal_tree_key_hash_dp_table = map_new(_void_ptr_, size_t);
+    }
     size_t hash = 0;
-    char *ptr = (char*) ((void*) &terminal.name);
+    char *ptr = (char*) (vd_p);
     size_t i = 0;
     size_t mod = sizeof(size_t) / sizeof(char);
     size_t offset = 0;
@@ -283,11 +294,7 @@ static inline size_t _terminal_tree_key_hash(_terminal_t terminal) {
         hash ^= ((255UL & ptr[i++]) << (8 * offset++));
         offset %= mod;
     }
-    // printf("<<hash for `");
-    // for(size_t i = 0; i < terminal.name_length; ++i)
-    //     printf("%c", terminal.name[i]);
-    // printf("` is ");
-    // printf("%zu>>", hash);
+    map_insert(_terminal_tree_key_hash_dp_table, vd_p, hash);
     return hash;
 }
 
@@ -340,20 +347,25 @@ void _print_terminal(_terminal_t term) {
     printf("\"]");
 }
 
+define_vector(size_t);
+
 static inline _parse_tree_node_t _parse_tree_node_t_from_token_t(_token_t token);
 static inline void _parser_shift(Vector(_parse_tree_node_t)*, List(_token_t)*);
 static inline void _parser_fill_look_ahead_list(List(_token_t)*, List(_token_t)*, size_t look_ahead, parser_type);
 static inline char _parser_shift_condition(Vector(_parse_tree_node_t)*, List(_token_t)*, _terminal_tree_t*, size_t);
-static inline char _parser_reduce(Vector(_parse_tree_node_t)*, _bnf_rules_t*, parser_type);
+static inline char _parser_reduce(Vector(_parse_tree_node_t)*, Vector(size_t)*, _bnf_rules_t*, parser_type);
 static inline void _parser_print_parse_tree_node_vector(Vector(_parse_tree_node_t)*);
 static inline void _parser_print_token_list(List(_token_t)*);
 static inline void _parser_print_parsing_step(Vector(_parse_tree_node_t) *parse_stack, List(_token_t) *look_ahead_list,
     List(_token_t) *token_list, size_t step_number);
+static inline Vector(size_t)* _sort_bnf_rule_indices(_bnf_rules_t *bnf_rules);
 
-_parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *rules, List(_token_t) *token_list, _terminal_tree_t *tree, size_t look_ahead, parser_type type) {
+_parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *bnf_rules, List(_token_t) *token_list, _terminal_tree_t *tree, size_t look_ahead, parser_type type) {
     Vector(_parse_tree_node_t) *parse_stack = vector_new(_parse_tree_node_t);
     List(_token_t) *look_ahead_list = list_new(_token_t);
     size_t step_number = 1;
+
+    Vector(size_t) *sorted_rule_indices = _sort_bnf_rule_indices(bnf_rules);
 
     if(0 == list_size(token_list))
         assert(0 == "Parser error!");
@@ -379,7 +391,7 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *rules, List(_token_t) 
             _parser_shift(parse_stack, look_ahead_list);
             _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead, type);
         } else {
-            if(1 == _parser_reduce(parse_stack, rules, type)) {
+            if(1 == _parser_reduce(parse_stack, sorted_rule_indices, bnf_rules, type)) {
                 _parser_shift(parse_stack, look_ahead_list);
                 _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead, type);
             }
@@ -387,7 +399,7 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *rules, List(_token_t) 
     }
 
     // Keep reducing.
-    while(0 == _parser_reduce(parse_stack, rules, type)) {
+    while(0 == _parser_reduce(parse_stack, sorted_rule_indices, bnf_rules, type)) {
 #ifdef PRINT_PARSE_TREE_STEPS
         _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
 #endif
@@ -400,12 +412,36 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *rules, List(_token_t) 
 #endif
 
     list_free(look_ahead_list);
+    vector_free(sorted_rule_indices);
+
     if(1 != vector_size(parse_stack))
         assert(0 == "Parser error!");
     _parse_tree_t parse_tree = {vector_get_back(parse_stack)};
     vector_free(parse_stack);
     return parse_tree;
 }
+
+Vector(size_t)* _sort_bnf_rule_indices(_bnf_rules_t *bnf_rules) {
+    Vector(size_t) *sorted_rule_indices = vector_new(size_t);
+    for(size_t i = 0; i < vector_size(bnf_rules->rules); ++i) {
+        vector_push_back(sorted_rule_indices, i);
+    }
+
+    // Sort from largest stack size to lowest stack size (bubble sort implementation)
+    for(size_t i = 0; i < vector_size(sorted_rule_indices); ++i) {
+        for(size_t j = 0; j < vector_size(sorted_rule_indices) - 1; ++j) {
+            if(vector_size(vector_get(bnf_rules->rules, vector_get(sorted_rule_indices, j)).rule)
+              < vector_size(vector_get(bnf_rules->rules, vector_get(sorted_rule_indices, j + 1)).rule)) {
+                size_t tmp = vector_get(sorted_rule_indices, j);
+                vector_set(sorted_rule_indices, j, vector_get(sorted_rule_indices, j + 1));
+                vector_set(sorted_rule_indices, j + 1, tmp);
+            }
+        }
+    }
+
+    return sorted_rule_indices;
+}
+
 
 #define FGREEN  "\x1b[32;1m"
 #define FYELLOW  "\x1b[33;1m"
@@ -499,27 +535,9 @@ static inline char _parser_shift_condition(Vector(_parse_tree_node_t) *parse_sta
 
 static inline char _parser_parse_stack_matches_bnf_rule(Vector(_parse_tree_node_t) *parse_stack, _bnf_rule_t bnf, parser_type type);
 
-define_vector(size_t);
-static inline char _parser_reduce(Vector(_parse_tree_node_t) *parse_stack, _bnf_rules_t *bnf_rules, parser_type type) {
-    Vector(size_t) *possible_rule_indices = vector_new(size_t);
-    for(size_t i = 0; i < vector_size(bnf_rules->rules); ++i) {
-        vector_push_back(possible_rule_indices, i);
-    }
-
-    // Sort from largest stack size to lowest stack size (bubble sort implementation)
-    for(size_t i = 0; i < vector_size(possible_rule_indices); ++i) {
-        for(size_t j = 0; j < vector_size(possible_rule_indices) - 1; ++j) {
-            if(vector_size(vector_get(bnf_rules->rules, vector_get(possible_rule_indices, j)).rule)
-              < vector_size(vector_get(bnf_rules->rules, vector_get(possible_rule_indices, j + 1)).rule)) {
-                size_t tmp = vector_get(possible_rule_indices, j);
-                vector_set(possible_rule_indices, j, vector_get(possible_rule_indices, j + 1));
-                vector_set(possible_rule_indices, j + 1, tmp);
-            }
-        }
-    }
-
-    for(size_t i = 0; i < vector_size(possible_rule_indices); ++i) {
-        _bnf_rule_t bnf = vector_get(bnf_rules->rules, vector_get(possible_rule_indices, i));
+static inline char _parser_reduce(Vector(_parse_tree_node_t) *parse_stack, Vector(size_t) *sorted_rule_indices, _bnf_rules_t *bnf_rules, parser_type type) {
+    for(size_t i = 0; i < vector_size(sorted_rule_indices); ++i) {
+        _bnf_rule_t bnf = vector_get(bnf_rules->rules, vector_get(sorted_rule_indices, i));
         // printf("Checking Rule #%zu!\n", vector_get(possible_rule_indices, i));
         if(_parser_parse_stack_matches_bnf_rule(parse_stack, bnf, type)) {
             // printf("Rule #%zu matched!\n", vector_get(possible_rule_indices, i));
@@ -536,7 +554,6 @@ static inline char _parser_reduce(Vector(_parse_tree_node_t) *parse_stack, _bnf_
         }
    }
 
-    vector_free(possible_rule_indices);
     return 1; // Could not reduce!
 }
 

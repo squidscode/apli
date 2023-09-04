@@ -1,8 +1,12 @@
 #ifndef APLI_H
 #define APLI_H
 
+
 #include "parser/parser.h"
 #include "util/macro_magic.h"
+
+// #undef _size_t_set_t
+// #undef _size_t_new_set
 
 /**
  * The following macros act describe the public-facing API calls the user can make

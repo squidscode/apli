@@ -7,7 +7,7 @@
 #include "list.h"
 
 // Macros
-#define RESIZE_RATIO    0.80
+#define RESIZE_RATIO    0.90
 
 /**
  *
@@ -101,7 +101,7 @@
         char *ptr = (char*) ((void*) &key); \
         size_t hash = 0; \
         for(size_t i = 0; i < size; ++i) { \
-            hash ^= ((255UL & ptr[i]) << (8 * offset++)); \
+            hash ^= ((255UL & ptr[i]) << (offset++ << 3)); \
             offset %= mod; \
         } \
         return hash; \
@@ -112,10 +112,11 @@
         size_t size = (sizeof(type) / sizeof(char)); \
         char *ptr1 = (char*) ((void*) &key1); \
         char *ptr2 = (char*) ((void*) &key2); \
+        size_t ret = 1UL; \
         for(size_t i = 0; i < size; ++i) { \
-            if(ptr1[i] != ptr2[i]) return 0; \
+            ret &= (ptr1[i] == ptr2[i]); \
         } \
-        return 1; \
+        return ret; \
     } \
     \
     /* Allocates the (hash, key, value) into the appropriate bucket in the set. */ \
@@ -156,7 +157,7 @@
         _allocate_into_bucket_##type##_set_( \
             set, \
             set->hash(val), \
-            val);\
+            val); \
         set->size += 1; \
         _check_resize_##type##_set_(set); \
     } \
@@ -215,13 +216,13 @@
     } \
     \
     size_t _##type##_set_equals_(_##type##_set_t *set1, _##type##_set_t *set2) { \
-        return _##type##_set_contains_all_(set1, set2) \
-            && set_size(set1) == set_size(set2); \
+        return set_size(set1) == set_size(set2) \
+            && _##type##_set_contains_all_(set1, set2); \
     } \
     \
     _##type##_set_t* _##type##_set_union_(_##type##_set_t *set1, _##type##_set_t *set2) { \
         List(type) *l2 = set_get_list(set2); \
-        while(0 < list_size(l2)) { \
+        while(list_size(l2)) { \
             set_insert(set1, list_get_front(l2)); \
             list_pop_front(l2); \
         } \
