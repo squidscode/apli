@@ -118,6 +118,25 @@
     } \
     \
     /* Runs the dfa with the given transition iterator. */ \
+    size_t _##st##_##tt##_dfa_run_exit_early(_##st##_##tt##_dfa_t *dfa, Iterator(tt) *transition_iter) { \
+        st current_state = dfa->begin_state; \
+        Iterator(tt) *iter_ptr = transition_iter; \
+        size_t offset = 0UL; \
+        size_t max_right_bound = ~0UL; \
+        while(iter_ptr != NULL) { \
+            dfa->tmp_trans.state = current_state; dfa->tmp_trans.transition = iter_val(transition_iter); \
+            /* printf("Transition (%i, %c) hash: %llu\n", dfa->tmp_trans.state, dfa->tmp_trans.transition, dfa->transition_map->hash(dfa->tmp_trans)); */ \
+            if (map_count(dfa->transition_map, dfa->tmp_trans)) \
+                current_state = map_at(dfa->transition_map, dfa->tmp_trans); \
+            else \
+                return 0; \
+            transition_iter = iter_next(transition_iter); \
+            offset += 1; \
+        } \
+        return max_right_bound; \
+    } \
+    \
+    /* Runs the dfa with the given transition iterator. */ \
     size_t _##st##_##tt##_dfa_run(_##st##_##tt##_dfa_t *dfa, Iterator(tt) *transition_iter) { \
         st current_state = dfa->begin_state; \
         while(transition_iter != NULL) { \

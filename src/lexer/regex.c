@@ -108,7 +108,7 @@ size_t _regex_parse(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin
         next_start = end + 1;
         list_pop_front(capturing_groups);
     }
-    end += 1; /* this value now reprents the "end state" of the list of capturing groups. */
+    end += 1; /* this value now represents the "end state" of the list of capturing groups. */
     while(0 < list_size(capturing_groups_ends)) {
         nfa_add_epsilon_transition(nfa, list_get_front(capturing_groups_ends), end);
         list_pop_front(capturing_groups_ends);
@@ -667,7 +667,7 @@ _regex_fns_t _regex_fn_impl_ = {
     &_regex_run,
     // &_regex_find_all_regex_matches,
     &_regex_find_all_regex_matches_exponential_pdf,
-     &_regex_destroy
+    &_regex_destroy
 };
 
 void _debug_print_regex_string_segment_t(_regex_string_segment_t rss) {
