@@ -60,7 +60,7 @@ __APLI_START__
 
     // Regexes need to be written in order of precedence!
     apli_regex(
-    //  (non_terminal_name, regex, pre-offset=0, post-offset=0)
+    //  (terminal_name, regex, pre-offset=0, post-offset=0)
         (NUMBER, "[1-9][0-9]*"),
         (PLUS, "\\+"),
         (MINUS, "-"),
