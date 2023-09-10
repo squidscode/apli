@@ -36,3 +36,21 @@
     └  factorial.lisp 0.051 ± 0.0 seconds (n=114)
   └  non-features
     └  mutual_recursion.lisp 0.055 ± 0.001 seconds (n=104)
+
+--- non-multithreaded, after greedy_regex ---
+ resources
+  └ slow
+    └ big-files
+      └ 1.5m-characters.lisp 0.77 ± 0.055 seconds (n=5)
+      └ 10k-lines.lisp 0.199 ± 0.009 seconds (n=30)
+  └ fast
+    └ features
+      └ lexical_scoping.lisp 0.026 ± 0.001 seconds (n=167)
+      └ recursion.lisp 0.025 ± 0.0 seconds (n=215)
+    └ simple
+      └ arithmetic.lisp 0.024 ± 0.0 seconds (n=212)
+      └ fibonacci.lisp 0.025 ± 0.0 seconds (n=251)
+      └ hello_world.lisp 0.034 ± 0.002 seconds (n=206)
+      └ factorial.lisp 0.024 ± 0.0 seconds (n=202)
+    └ non-features
+      └ mutual_recursion.lisp 0.041 ± 0.003 seconds (n=208)
