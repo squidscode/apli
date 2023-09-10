@@ -172,7 +172,7 @@ apli_define_functions(s_expression, list, s_expressions, atomic_symbol);
 
 __APLI_START__
     // Since we rely on right-recursion in our bnf rules, we need to tell the
-    // parser to parse right to left.
+    // parser to parse right-to-left.
     apli_set_parser_type(RIGHT_TO_LEFT);
 
     apli_non_terminals(s_expression, list, s_expressions, atomic_symbol);
