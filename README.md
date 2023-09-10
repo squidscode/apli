@@ -212,20 +212,19 @@ __APLI_START__
 
 __APLI_END__
 
-apli_function(s_expressions) {
-    // ...
-}
-
 apli_function(s_expression) {
     // ...
 }
 
-
-apli_function(atomic_symbol) {
+apli_function(list) {
     // ...
 }
 
-apli_function(list) {
+apli_function(s_expressions) {
+    // ...
+}
+
+apli_function(atomic_symbol) {
     // ...
 }
 
