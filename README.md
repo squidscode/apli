@@ -32,8 +32,6 @@ CL_PAREN := "\\)"
 CARET    := "\\^"
 ```
 
-NOTE: Although these regexes correctly describe the tokens, APLI works with regexes that "contain the entire token" rather than performing a "largest match". The internal regex matching algorithm only returns the shortest matches. This means, a NUMBER would have to be written as `[^0-9][1-9][0-9]*[^0-9]` with a `+1` offset from the left and a `-1` offset from the right. 
-
 3. Construct your evaluator! \
   (a) Include "<apli.h>". \
   (b) Define the required eval-hook macros and call `apli_init`. \
@@ -62,9 +60,8 @@ __APLI_START__
 
     // Regexes need to be written in order of precedence!
     apli_regex(
-        (NUMBER, "([^0-9]-[1-9][0-9]*[^0-9])", 1, 1),    // +1 left offset, -1 right offset
-        (NUMBER, "([^0-9]\\+?[1-9][0-9]*[^0-9])", 1, 1), // ...
-        (NUMBER, "[^0-9]0[^0-9]", 1, 1),                 // ...
+    //  (non_terminal_name, regex, pre-offset=0, post-offset=0)
+        (NUMBER, "[1-9][0-9]*"),
         (PLUS, "\\+"),
         (MINUS, "-"),
         (STAR, "\\*"),
@@ -77,6 +74,7 @@ __APLI_START__
 
     // BNF rules.
     apli_bnf(
+    //  (left-hand side rule, [=] rule #1, rule #2 ...)
         (expr, term),
         (expr, expr, PLUS, term),
         (expr, expr, MINUS, term),
@@ -114,3 +112,122 @@ apli_function(factor) {
 Check out [`calculator.c`](evaluators/arithmetic/calculator.c) to see a working implementation. Also, check out [`lisp.c`](evaluators/lisp/lisp.c) for a tree-walking lisp interpreter. It can currently interpret [the following files](test/integration/resources/simple), and is approximately 10 times slower than `clisp`, partly due to inefficiencies in `apli` and, probably, the fact that it's not complied to bytecode first. 
 
 If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for a dead-simple tree-walking interpreter. Is it fast? No. Does it work? Sure (the tests in `test/integration/resources` evaluate correctly).
+
+# Lisp Evaluator Boilerplate Code
+```c
+#include <apli.h>
+
+#define APLI_EVAL_ARGUMENTS   environment *env
+#define APLI_EVAL_NAMES       env
+#define APLI_EVAL_RETURN_TYPE return_value
+
+
+#define resolve_id(env, id)         _resolve_identifier(env, id)
+#define env_new()                   _env_new()
+#define env_free(env)               _env_free(env)
+#define push_frame(env)             _push_frame(env)
+#define pop_frame(env)              _pop_frame(env)
+#define extend_env(env, id, val)    _extend_env(env, id, val)
+
+
+// --------------------------------------
+// ---------- Data definitions ----------
+// --------------------------------------
+
+typedef struct _identifier {
+    const char *str;
+    size_t length;
+} identifier;
+
+typedef Map(identifier, return_value)* frame;
+
+typedef struct _environment {
+    frame *stack_frame;
+} environment;
+
+typedef struct _function_value {
+    environment *closure;
+    ApliNode function_pointer;
+    identifier *arguments;
+} function_value;
+
+typedef union _rv_data {
+    int num;
+    const char *segment;
+    function_value fun_v;
+} rv_data;
+
+typedef enum _rv_type {NUMBER, IDENTIFIER, FUNCTION, STRING} rv_type;
+
+typedef struct _return_value_type {
+    rv_type type;
+    rv_data ref;
+} return_value;
+
+// --------------------------------------
+
+
+apli_init();
+apli_define_functions(s_expression, list, s_expressions, atomic_symbol);
+
+__APLI_START__
+    // Since we rely on right-recursion in our bnf rules, we need to tell the
+    // parser to parse right to left.
+    apli_set_parser_type(RIGHT_TO_LEFT);
+
+    apli_non_terminals(s_expression, list, s_expressions, atomic_symbol);
+    apli_terminals(ATOMIC_SYMBOL, OPEN_PAREN, CLOSE_PAREN, PERIOD, COMMENT);
+
+    apli_regex(
+        (COMMENT,       ";[^\n]*"),
+        (ATOMIC_SYMBOL, "(\"([^\n\"]|\\\")*\"|[a-z0-9\\-]+|(<=|>=|[+-\\*/<>=]))"),
+        (OPEN_PAREN,    "\\("),
+        (CLOSE_PAREN,   "\\)"),
+        (PERIOD,        ".")
+    );
+    apli_regex_compile();
+
+    apli_bnf(
+        (s_expression,  atomic_symbol),
+        (s_expression,  OPEN_PAREN, s_expression, PERIOD, s_expression, CLOSE_PAREN),
+        (s_expression,  list),
+        (list,          OPEN_PAREN, s_expressions, CLOSE_PAREN),
+        (list,          OPEN_PAREN, CLOSE_PAREN),
+        (s_expressions, s_expression),
+        (s_expressions, s_expression, s_expressions),
+        (atomic_symbol, ATOMIC_SYMBOL)
+    );
+
+    // A better abstraction for these steps will be coming soon.
+    List(_token_t) *tokens = token_rules_tokenize(token_rules, input);
+    _token_rules_ignore_token(tokens, "COMMENT");        
+    parse_tree_result = bnf_rules_construct_parse_tree(bnf_rules, tokens, parser_type_inst);
+
+    environment *env = env_new();
+    push_frame(env);                              // the global stack frame
+    apli_evaluate_node(parse_tree_result.root);
+    env_free(env);
+
+    free(input);
+
+__APLI_END__
+
+apli_function(s_expressions) {
+    // ...
+}
+
+apli_function(s_expression) {
+    // ...
+}
+
+
+apli_function(atomic_symbol) {
+    // ...
+}
+
+apli_function(list) {
+    // ...
+}
+
+// Imlementation details...
+```
