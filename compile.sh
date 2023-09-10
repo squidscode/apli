@@ -3,7 +3,7 @@
 LISP_FILE="./evaluators/lisp/lisp.c"
 LISP_TEST_FILE="./resources/lisp/very_long_lisp_program.lisp"
 INTEGRATION_PY="test/integration/test_lisp.py"
-FLAGS="-DMULTITHREADED"
+# FLAGS="-DMULTITHREADED"
 
 if [[ $1 == "parse-tree" ]]; then
     clang -O3 -DPRINT_PARSE_TREE $LISP_FILE;

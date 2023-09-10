@@ -158,11 +158,10 @@ int main(int argc, char **argv) {
     apli_terminals(ATOMIC_SYMBOL, OPEN_PAREN, CLOSE_PAREN, PERIOD, COMMENT);
 
     apli_regex(
-        (COMMENT, ";[^\n]*\n"),
-        (ATOMIC_SYMBOL, "[^\\]\"[^\n]*[^\\]\"", 1, 0),
-        (ATOMIC_SYMBOL, "[^a-z0-9\\-][a-z0-9\\-]+[^a-z0-9\\-]", 1, 1),
-        (ATOMIC_SYMBOL, "(<=|>=)", 0, 0),
-        (ATOMIC_SYMBOL, "([+-\\*/<>=])", 0, 0),
+        (COMMENT, ";[^\n]*"),
+        (ATOMIC_SYMBOL, "\"([^\n\"]|\\\")*\""),
+        (ATOMIC_SYMBOL, "[a-z0-9\\-]+"),
+        (ATOMIC_SYMBOL, "(<=|>=|[+-\\*/<>=])"),
         (OPEN_PAREN, "\\("),
         (CLOSE_PAREN, "\\)"),
         (PERIOD, ".")

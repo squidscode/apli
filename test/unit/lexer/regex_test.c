@@ -1,4 +1,6 @@
-#include "../../../src/lexer/regex.h"
+// #define UNOPTIMIZED
+
+#include "../../../src/lexer/greedy_regex.h"
 #include "../testlib/testlib.h"
 #include <stdio.h>
 
@@ -85,12 +87,16 @@ int main() {
     assertTrue(1 == regex_run(regex6, "dog   "));
     assertTrue(1 == regex_run(regex6, "fog   "));
     regex_free(regex6);
+
     regex6 = regex_from("(lo)+g");
     regex_compile(regex6);
     assertTrue(1 == regex_run(regex6, "log"));
     assertTrue(1 == regex_run(regex6, "lolololog"));
     assertTrue(0 == regex_run(regex6, "g"));
     regex_free(regex6);
+
+    // exit(0);
+
     regex6 = regex_from("(b(_+)o)g");
     regex_compile(regex6);
     assertTrue(0 == regex_run(regex6, "bog"));
@@ -243,6 +249,20 @@ int main() {
     assertTrue(0 == regex_run(span, "s"));
     assertTrue(0 == regex_run(span, "z"));
     regex_free(span);
+
+
+    Regex *greedy_regex = regex_from("[1-9][0-9]*");
+    regex_compile(greedy_regex);
+    list_of_matches = regex_find_all(greedy_regex, (str = "asdf 1000230 words 403432430 other"));
+    print_matches(str, list_of_matches);
+    list_free(list_of_matches);
+
+    // const char *test = "asjfhdshk 12389000 asdfad";
+    // printf("Captured string: ");
+    // for(size_t i = (len - left); i <= right; ++i) {
+    //     printf("%c", test[i]);
+    // }
+    // printf("\n");
 
     exit(0);
 

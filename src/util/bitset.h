@@ -25,7 +25,7 @@ typedef struct _bitset_ _bitset_t;
 
 define_list(size_t);
 
-#define BITSET_SIZE             (1)
+#define BITSET_SIZE             (4)
 #define BITSET_CHUNK_SIZE       (3 + (sizeof(size_t) >> 2))
 #define BITSET_INDEX(ind)       (ind >> BITSET_CHUNK_SIZE)
 #define BITSET_OFFSET(ind)      (1UL << (ind & ((1 << BITSET_CHUNK_SIZE) - 1)))
@@ -61,6 +61,9 @@ static inline size_t _bitset_collection_hash(_bitset_t *bs) {
 }
 
 static inline void _bitset_insert_(_bitset_t* bs, size_t ind) {
+#ifndef NO_ASSERT
+    assert(BITSET_INDEX(ind) < BITSET_SIZE); // Not a significant slowdown
+#endif
     bs->arr[BITSET_INDEX(ind)] |= BITSET_OFFSET(ind);
 }
 

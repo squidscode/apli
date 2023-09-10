@@ -9,6 +9,7 @@ init_dfa_types(size_t, char);
 define_dfa(size_t, char);
 init_nfa(int, char);
 define_nfa(int, char);
+define_set(char);
 
 List(char)* str_list = NULL;
 Iterator(char)* str_to_iter(const char*);
@@ -19,9 +20,9 @@ int main() {
     nfa_add_transition(nfa1, 0, '1', 1);
     nfa_add_transition(nfa1, 1, '0', 0);
     nfa_add_alphabet_transition(nfa1, 1, 1);
-    Set(char) *alphabet = set_new(char);
+    Vector(char) *alphabet = vector_new(char);
     for(int i = 0; i < 126; ++i) {
-        set_insert(alphabet, i);
+        vector_push_back(alphabet, i);
     }
     
     __auto_type *dfa = nfa_to_dfa(nfa1, alphabet);
@@ -32,10 +33,10 @@ int main() {
     // The next to examples are from:
     // https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton
 
-    set_free(alphabet);
-    alphabet = set_new(char);
-    set_insert(alphabet, '0');
-    set_insert(alphabet, '1');
+    vector_free(alphabet);
+    alphabet = vector_new(char);
+    vector_push_back(alphabet, '0');
+    vector_push_back(alphabet, '1');
 
     // This nfa determines if the string ends in 1. The alphabet is {0, 1}
     Nfa(int, char) *nfa_example_1 = nfa_new(int, char, 0);
@@ -85,7 +86,7 @@ int main() {
     assertTrue(1 == dfa_run(dfa, str_to_iter("0011")));
     assertTrue(1 == dfa_run(dfa, str_to_iter("0000001")));
 
-    set_free(alphabet);
+    vector_free(alphabet);
     dfa_free(dfa);
     nfa_free(nfa_example_2);
 

@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 #include "../util/list.h"
 #include "../util/vector.h"
 #include "../util/map.h"
@@ -56,6 +57,8 @@
 #define Dfa(st, tt)                                 _##st##_##tt##_dfa_t
 #define Fdfa(st, tt)                                _##st##_##tt##_fdfa_t
 #define dfa_run(dfa, iter)                          ((dfa)->fns->run((dfa), (iter)))
+#define dfa_run_greedy(dfa, ptr, sz)                ((dfa)->fns->run_greedy((dfa), (ptr), (sz)))
+#define dfa_run_greedy_iter(dfa, iter)              ((dfa)->fns->run_greedy_iter((dfa), (iter)))
 #define dfa_add_transition(dfa, from, trans, to)    ((dfa)->fns->add_transition((dfa), (from), (trans), (to)))
 #define dfa_remove_transition(dfa, state, trans)    ((dfa)->fns->remove_transition((dfa), (state), (trans)))
 #define dfa_add_accept_state(dfa, state)            ((dfa)->fns->add_accept_state((dfa), (state)))
@@ -89,6 +92,8 @@
     /* Virtual table for mutable DFA functions */ \
     struct _##st##_##tt##_dfa_fns_ { \
         size_t (*run)(struct _##st##_##tt##_dfa_*, Iterator(tt)*); \
+        size_t (*run_greedy)(struct _##st##_##tt##_dfa_*, const tt*, size_t); \
+        size_t (*run_greedy_iter)(struct _##st##_##tt##_dfa_*, Iterator(tt)*); \
         void (*add_transition)(struct _##st##_##tt##_dfa_*, st, tt, st); \
         size_t (*remove_transition)(struct _##st##_##tt##_dfa_*, st, tt); \
         void (*add_accept_state)(struct _##st##_##tt##_dfa_*, st); \
@@ -118,18 +123,52 @@
     } \
     \
     /* Runs the dfa with the given transition iterator. */ \
-    size_t _##st##_##tt##_dfa_run_exit_early(_##st##_##tt##_dfa_t *dfa, Iterator(tt) *transition_iter) { \
+    size_t _##st##_##tt##_dfa_run_greedy(_##st##_##tt##_dfa_t *dfa, const tt *ptr, size_t ptr_sz) { \
+        st current_state = dfa->begin_state; \
+        size_t offset = 0UL; \
+        size_t max_right_bound = ~0UL; \
+        size_t state = 0; \
+        while(offset <= ptr_sz) { \
+            dfa->tmp_trans.state = current_state; dfa->tmp_trans.transition = ptr[offset]; \
+            /* printf("OFFSET: %zu, STATE: %zu\n", offset, current_state); */ \
+            if(current_state == dfa->begin_state && max_right_bound != ~0UL) { \
+                /* printf("RETURNING\n"); */ \
+                return max_right_bound;\
+            } else if(set_count(dfa->accept_states, current_state)) { \
+                /* printf("State is accepting!\n"); */ \
+                max_right_bound = offset; \
+            } \
+            \
+            if (map_count(dfa->transition_map, dfa->tmp_trans)) { \
+                current_state = map_at(dfa->transition_map, dfa->tmp_trans); \
+            } else { \
+                current_state = dfa->begin_state; \
+            } \
+            offset += 1; \
+        } \
+        return max_right_bound; \
+    } \
+    \
+    /* Runs the dfa with the given transition iterator. */ \
+    size_t _##st##_##tt##_dfa_run_greedy_iterator(_##st##_##tt##_dfa_t *dfa, Iterator(tt) *transition_iter) { \
         st current_state = dfa->begin_state; \
         Iterator(tt) *iter_ptr = transition_iter; \
         size_t offset = 0UL; \
         size_t max_right_bound = ~0UL; \
+        size_t state = 0; \
         while(iter_ptr != NULL) { \
             dfa->tmp_trans.state = current_state; dfa->tmp_trans.transition = iter_val(transition_iter); \
-            /* printf("Transition (%i, %c) hash: %llu\n", dfa->tmp_trans.state, dfa->tmp_trans.transition, dfa->transition_map->hash(dfa->tmp_trans)); */ \
-            if (map_count(dfa->transition_map, dfa->tmp_trans)) \
+            if(current_state == dfa->begin_state && max_right_bound != ~0UL) { \
+                return max_right_bound;\
+            } else if (set_count(dfa->accept_states, current_state)) { \
+                max_right_bound = offset; \
+            } \
+            \
+            if (map_count(dfa->transition_map, dfa->tmp_trans)) { \
                 current_state = map_at(dfa->transition_map, dfa->tmp_trans); \
-            else \
-                return 0; \
+            } else { \
+                current_state = dfa->begin_state; \
+            } \
             transition_iter = iter_next(transition_iter); \
             offset += 1; \
         } \
@@ -253,7 +292,8 @@
     } \
     \
     _##st##_##tt##_dfa_fns_t _##st##_##tt##_fns = { \
-        &_##st##_##tt##_dfa_run, &_##st##_##tt##_dfa_add_transition, \
+        &_##st##_##tt##_dfa_run, &_##st##_##tt##_dfa_run_greedy, \
+        &_##st##_##tt##_dfa_run_greedy_iterator, &_##st##_##tt##_dfa_add_transition, \
         &_##st##_##tt##_dfa_remove_transition, &_##st##_##tt##_dfa_add_accepting_state, \
         &_##st##_##tt##_dfa_remove_accepting_state, &_##st##_##tt##_dfa_compress, \
         &_##st##_##tt##_dfa_free, &_##st##_##tt##_dfa_to_fdfa \

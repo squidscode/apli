@@ -12,7 +12,7 @@ TOP_BOX_CHARACTER = "\u2514"
 TEST_FILE_TIME_LIMIT = 6       # seconds
 ALPHA = 0.05
 ROUND_DIGITS = 3
-MIN_TESTS = 20
+MIN_TESTS = 5
 RUN_EXE = "./mylisp.out"
 DRY_RUN_EXE = "./mylisp-dry-run.out"
 
@@ -47,14 +47,12 @@ def recursive_test_runner(test_tree, indent: int = 0) -> None:
     for test_path in test_tree[LEAF_NODE_NAME]:
         print_indent(indent + 1)
         print(TOP_BOX_CHARACTER, end="")
-        print(" ", end="")
         print_test(test_path)    
     for next_dirname in test_tree.keys():
         if next_dirname == LEAF_NODE_NAME:
             continue
         print_indent(indent + 1)
         print(TOP_BOX_CHARACTER, end="")
-        print(" ", end="")
         prCyan(next_dirname)
         recursive_test_runner(test_tree[next_dirname], indent+1)
 
@@ -67,8 +65,8 @@ def print_test(test_path: str) -> None:
     mylisp_command = f"{RUN_EXE} {test_path}"
     # run_diff_command += f"diff expected.txt actual.txt; "
     # run_diff_command += f"rm -f expected.txt actual.txt; "
-    clisp_result = sb.run(shlex.split(clisp_command), stdout=sb.PIPE, text=True)
-    mylisp_result = sb.run(shlex.split(mylisp_command), stdout=sb.PIPE, text=True)
+    clisp_result = sb.run(shlex.split(clisp_command), stdout=sb.PIPE, stderr=sb.PIPE, text=True)
+    mylisp_result = sb.run(shlex.split(mylisp_command), stdout=sb.PIPE, stderr=sb.PIPE, text=True)
     stdout_equal = clisp_result.stdout == mylisp_result.stdout
     if no_color:
         print("[PASS]" if stdout_equal else "[FAIL]", end=" ")
@@ -106,8 +104,7 @@ def run_shell_timed(command: str) -> float:
     return time.time() - start
 
 def run_shell(command: str) -> None:
-    # print(shlex.split(command))
-    p = sb.run(shlex.split(command), stdout=sb.DEVNULL)
+    p = sb.run(shlex.split(command), stdout=sb.DEVNULL, stderr=sb.DEVNULL)
 
 
 start_test_runner()

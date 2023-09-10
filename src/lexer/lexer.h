@@ -12,7 +12,11 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#include "regex.h"
+#ifdef NON_GREEDY
+    #include "regex.h"
+#else
+    #include "greedy_regex.h"
+#endif
 
 /**
  * Token rules are defined as a mapping from a "token name" (const char*)

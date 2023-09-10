@@ -27,9 +27,7 @@ __APLI_START__
     apli_terminals(NUMBER, PLUS, MINUS, STAR, FORWARD_SLASH, OPEN_PAREN, CLOSE_PAREN, CARROT);
 
     apli_regex(
-        (NUMBER, "([^0-9]-[1-9][0-9]*[^0-9])", 1, 1),
-        (NUMBER, "([^0-9]\\+?[1-9][0-9]*[^0-9])", 1, 1),
-        (NUMBER, "[^0-9]0[^0-9]", 1, 1),
+        (NUMBER, "(\\-?([123456789][0123456789]*|0))"),
         (PLUS, "\\+"),
         (MINUS, "-"),
         (STAR, "\\*"),
