@@ -11,7 +11,8 @@ INDENT_STR = "  "
 TOP_BOX_CHARACTER = "\u2514"
 TEST_FILE_TIME_LIMIT = 6       # seconds
 ALPHA = 0.05
-ROUND_DIGITS = 3
+ROUND_DIGITS = 1
+TIME_MULTIPLIER = (1000, "milliseconds")
 MIN_TESTS = 5
 RUN_EXE = "./mylisp.out"
 DRY_RUN_EXE = "./mylisp-dry-run.out"
@@ -96,7 +97,7 @@ def print_test_results(test_results: list[float]) -> None:
         scale=scistats.sem(test_results)
     )
     error = (right - left) / 2
-    print(f"{round(mean, ROUND_DIGITS)} \u00B1 {round(error, ROUND_DIGITS)} seconds (n={len(test_results)})")
+    print(f"{round(mean * TIME_MULTIPLIER[0], ROUND_DIGITS)} \u00B1 {round(error * TIME_MULTIPLIER[0], ROUND_DIGITS)} {TIME_MULTIPLIER[1]} (n={len(test_results)})")
 
 def run_shell_timed(command: str) -> float:
     start = time.time()

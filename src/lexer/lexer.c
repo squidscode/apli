@@ -49,7 +49,9 @@ void _token_rules_compile(TokenRules *tr) {
 #else
     size_t size = vector_size(tr->rules);
     for(size_t i = 0; i < size; ++i) {
-        regex_compile(vector_get(tr->rules, i).regex);
+        _regex_t *r = vector_get(tr->rules, i).regex;
+        if(r->state == REGEX_RAW_LOADED)
+            regex_compile(r);
     }
 #endif
 }

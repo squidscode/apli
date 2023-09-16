@@ -54,15 +54,27 @@
 #define THIRD(a,b,c,...) c
 #define FORTH(a,b,c,d,...) d
 #define apli_define_regex_internal(expr) \
+    size_t DEFER3(CAT)( DEFER2(FIRST) expr , _index) = regex_index_counter++; \
     DEFER2(IF_ELSE) (DEFER1(HAS_ARGS) DEFER1(_REST) DEFER1(_REST) expr) ( \
         token_rules_add_rule_offset(token_rules, STRINGIFY(DEFER3(FIRST) expr), DEFER3(THIRD) expr, DEFER3(FORTH) expr, DEFER3(SECOND) expr), \
         token_rules_add_rule(token_rules, STRINGIFY(DEFER3(FIRST) expr), DEFER3(SECOND) expr) \
     )
 
+#define apli_regex_init() \
+    size_t regex_index_counter = 0
 #define apli_regex_rule(...)        EVAL(apli_define_regex_internal((__VA_ARGS__)))
 #define apli_regex(...)             MAP(apli_define_regex_internal, SEMI_COLON, __VA_ARGS__)
 
 #define apli_regex_compile()        token_rules_compile(token_rules)
+
+#define apli_regex_load_internal(expr) \
+    DEFER5(regex_load) ( \
+        DEFER4(vector_get) (token_rules->rules, DEFER3(CAT)( DEFER2(FIRST) expr , _index)).regex, \
+        DEFER2(SECOND) expr, \
+        DEFER2(THIRD) expr \
+    )
+
+#define apli_regex_load(...)        MAP(apli_regex_load_internal, SEMI_COLON, __VA_ARGS__)
 
 #define __APLI_START__ \
     int main(int argc, char **argv) { \
@@ -76,6 +88,7 @@
     map_set_key_eq(eval_fns, &str_eq); \
     map_set_hash(eval_fns, &str_hash); \
     parser_type parser_type_inst = LEFT_TO_RIGHT; \
+    apli_regex_init()
 
 #define apli_set_parser_type(type) \
     parser_type_inst = type

@@ -1,7 +1,7 @@
 #ifndef NFA_OPT_H
 #define NFA_OPT_H
 
-#include "dfa.h"
+#include "flat_dfa.c"
 #include "../util/set.h"
 #include "../util/bitset.h"
 
@@ -68,7 +68,6 @@ define_set(_char_nfa_transition_t);
 define_map(_char_nfa_transition_t, size_t_set_ptr_t);
 typedef Map(_char_nfa_transition_t, size_t_set_ptr_t)* _size_t_char_nfa_transition_map_t;
 
-define_list(char);
 define_list(size_t_set_ptr_t);
 define_map(size_t, _size_t_char_nfa_transition_map_t);
 define_map(size_t, size_t_set_ptr_t);
@@ -78,10 +77,6 @@ typedef struct _size_t_char_dfa_ _size_t_char_dfa_t;
 _size_t_char_dfa_t* _size_t_char_dfa_new(size_t);
 define_dfa(size_t_set_ptr_t, char);
 define_vector(char)
-
-define_set(size_t);
-init_dfa_types(size_t, char);
-define_dfa(size_t, char);
 
 struct _size_t_char_nfa_;
 /* Virtual table for mutable DFA functions */

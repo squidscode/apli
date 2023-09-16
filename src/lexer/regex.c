@@ -324,7 +324,10 @@ size_t _regex_is_special_character(_regex_string_segment_t rss) {
 size_t _regex_expand_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size) {
     if(0 >= raw_regex_size)
         assert(0 == "Invalid regex_segment size.");
-    if (1 == raw_regex_size) {
+    if (1 == raw_regex_size && '.' == raw_regex[0]) { // special token!
+        nfa_add_alphabet_transition(nfa, begin_expansion_state, begin_expansion_state + 1);
+        return begin_expansion_state + 1;
+    } else if (1 == raw_regex_size) {
         nfa_add_transition(nfa, begin_expansion_state, raw_regex[0], begin_expansion_state + 1);
         return begin_expansion_state + 1;
     } else if (2 == raw_regex_size && '\\' == raw_regex[0]) {

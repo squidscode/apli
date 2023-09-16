@@ -29,6 +29,7 @@
 #define regex_compile(regex)        (_regex_fn_impl_.compile((regex)))
 #define regex_run(regex, str)       (_regex_fn_impl_.run((regex), (str)))
 #define regex_find_all(regex,str)   (_regex_fn_impl_.find_all_matches((regex), (str)))
+#define regex_load(regex, fd, bw)   (_regex_fn_impl_.load((regex), (fd), (bw)))
 #define regex_free(regex)           (_regex_fn_impl_.destroy((regex)))
 
 /**
@@ -76,6 +77,7 @@ typedef struct __regex_match_t_list_ _regex_match_t_list_t;
 struct _regex_fns_ {
     struct _regex_* (*from)(const char*);
     struct _regex_* (*compile)(struct _regex_*);
+    struct _regex_* (*load)(_regex_t*, const char*, const char*);
     size_t (*run)(struct _regex_*, const char*);
     List(_regex_match_t)* (*find_all_matches)(struct _regex_*, const char*);
     void (*destroy)(struct _regex_*);
@@ -98,8 +100,8 @@ struct _regex_ {
     const char* raw_regex;
     Nfa(size_t, char) *forward_nfa;
     Nfa(size_t, char) *backward_nfa;
-    Dfa(size_t, char) *forward_dfa;
-    Dfa(size_t, char) *backward_dfa;
+    _flat_dfa_t *forward_dfa;
+    _flat_dfa_t *backward_dfa;
 };
 
 _regex_t* _regex_from(const char* str) {
@@ -155,7 +157,7 @@ _regex_t* _regex_compile(_regex_t *regex) {
     regex->forward_nfa = nfa_new(size_t, char, 0);
     regex->backward_nfa = nfa_new(size_t, char, 0);
     Vector(char) *alphabet = vector_new(char);
-    for(int i = 0; i < 256; ++i) {
+    for(int i = 0; i < (1 << _flat_dfa_offset_constant); ++i) {
         vector_push_back(alphabet, i);
     }
     // printf("forward dfa: \n");
@@ -171,17 +173,48 @@ _regex_t* _regex_compile(_regex_t *regex) {
     vector_free(alphabet);
     Dfa(size_t, char) *compressed_forward_dfa = dfa_compress(forward_dfa); // added step
     Dfa(size_t, char) *compressed_backward_dfa = dfa_compress(backward_dfa); // added step
-    // printf("Begin state: %zu\n", compressed_forward_dfa->begin_state);
-    // List(size_t) *lst = set_get_list(compressed_forward_dfa->accept_states);
-    // while(list_size(lst)) {
-    //     printf("Accept state: %zu\n", list_get_front(lst));
-    //     list_pop_front(lst);
-    // }
 
-    free(forward_dfa);
-    free(backward_dfa);
-    regex->forward_dfa = compressed_forward_dfa;
-    regex->backward_dfa = compressed_backward_dfa;
+#ifdef PRINT_REGEX_COMPILATION
+    printf("Finished compiling `%s`\n", regex->raw_regex);
+    printf("Begin state: %zu\n", compressed_forward_dfa->begin_state);
+    List(size_t) *lst = set_get_list(compressed_forward_dfa->accept_states);
+    size_t max = 0UL;
+    while(list_size(lst)) {
+        if(max < list_get_front(lst))
+            max = list_get_front(lst);
+        list_pop_front(lst);
+    }
+    printf("# of dfa states: %zu\n\n", max);
+#endif
+
+    dfa_free(forward_dfa);
+    dfa_free(backward_dfa);
+    regex->forward_dfa = flat_dfa_from_compressed_dfa(compressed_forward_dfa);
+    regex->backward_dfa = flat_dfa_from_compressed_dfa(compressed_backward_dfa);
+
+#ifdef PRINT_FLAT_DFA
+    printf("Finished compiling `%s`\n", regex->raw_regex);
+    printf("Forward_dfa:");
+    const char *str = flat_dfa_serialize(regex->forward_dfa);
+    _flat_dfa_print(str);
+    free((void*) str);
+    printf("Backward_dfa:");
+    str = flat_dfa_serialize(regex->backward_dfa);
+    _flat_dfa_print(str);
+    free((void*) str);
+    printf("\n");
+#endif
+
+    dfa_free(compressed_forward_dfa);
+    dfa_free(compressed_backward_dfa);
+
+    regex->state = REGEX_COMPILED;
+    return regex;
+}
+
+_regex_t* _regex_load_flat_dfas(_regex_t *regex, const char *forward, const char *backward) {
+    regex->forward_dfa = flat_dfa_deserialize(forward);
+    regex->backward_dfa = flat_dfa_deserialize(backward);
     regex->state = REGEX_COMPILED;
     return regex;
 }
@@ -233,10 +266,6 @@ List(_regex_string_segment_t)* _regex_split_by_capturing_groups(const char *ptr,
             continue;
         }
         paren_level += ('(' == ptr[i]) - (')' == ptr[i]);
-        // if('(' == ptr[i])
-        //     paren_level += 1;
-        // if(')' == ptr[i])
-        //     paren_level -= 1;
         if('|' == ptr[i] && 0 == paren_level) {
             list_push_back(groups, _regex_string_segment_from(ptr, capture_group_begin_offset, i));
             capture_group_begin_offset = i + 1;
@@ -438,7 +467,10 @@ size_t _regex_is_special_character(_regex_string_segment_t rss) {
 size_t _regex_expand_token(Vector(char) *alphabet, Nfa(size_t, char) *nfa, size_t begin_expansion_state, const char* raw_regex, size_t raw_regex_size, _regex_parse_direction_t pd) {
     if(0 >= raw_regex_size)
         assert(0 == "Invalid regex_segment size.");
-    if (1 == raw_regex_size) {
+    if (1 == raw_regex_size && '.' == raw_regex[0]) { // special token!
+        nfa_add_alphabet_transition(nfa, begin_expansion_state, begin_expansion_state + 1);
+        return begin_expansion_state + 1;
+    } else if (1 == raw_regex_size) {
         nfa_add_transition(nfa, begin_expansion_state, raw_regex[0], begin_expansion_state + 1);
         return begin_expansion_state + 1;
     } else if (2 == raw_regex_size && '\\' == raw_regex[0]) {
@@ -697,6 +729,7 @@ void _regex_destroy(_regex_t *regex) {
 _regex_fns_t _regex_fn_impl_ = {
     &_regex_from,
     &_regex_compile,
+    &_regex_load_flat_dfas,
     &_regex_run,
     &_regex_find_all_regex_matches,
     &_regex_destroy

@@ -128,9 +128,16 @@
         size_t offset = 0UL; \
         size_t max_right_bound = ~0UL; \
         size_t state = 0; \
-        while(offset <= ptr_sz) { \
+        while(offset < ptr_sz) { \
             dfa->tmp_trans.state = current_state; dfa->tmp_trans.transition = ptr[offset]; \
             /* printf("OFFSET: %zu, STATE: %zu\n", offset, current_state); */ \
+            if (map_count(dfa->transition_map, dfa->tmp_trans)) { \
+                current_state = map_at(dfa->transition_map, dfa->tmp_trans); \
+            } else { \
+                current_state = dfa->begin_state; \
+            } \
+            offset += 1; \
+            \
             if(current_state == dfa->begin_state && max_right_bound != ~0UL) { \
                 /* printf("RETURNING\n"); */ \
                 return max_right_bound;\
@@ -138,13 +145,6 @@
                 /* printf("State is accepting!\n"); */ \
                 max_right_bound = offset; \
             } \
-            \
-            if (map_count(dfa->transition_map, dfa->tmp_trans)) { \
-                current_state = map_at(dfa->transition_map, dfa->tmp_trans); \
-            } else { \
-                current_state = dfa->begin_state; \
-            } \
-            offset += 1; \
         } \
         return max_right_bound; \
     } \
@@ -158,12 +158,6 @@
         size_t state = 0; \
         while(iter_ptr != NULL) { \
             dfa->tmp_trans.state = current_state; dfa->tmp_trans.transition = iter_val(transition_iter); \
-            if(current_state == dfa->begin_state && max_right_bound != ~0UL) { \
-                return max_right_bound;\
-            } else if (set_count(dfa->accept_states, current_state)) { \
-                max_right_bound = offset; \
-            } \
-            \
             if (map_count(dfa->transition_map, dfa->tmp_trans)) { \
                 current_state = map_at(dfa->transition_map, dfa->tmp_trans); \
             } else { \
@@ -171,6 +165,12 @@
             } \
             transition_iter = iter_next(transition_iter); \
             offset += 1; \
+            \
+            if(current_state == dfa->begin_state && max_right_bound != ~0UL) { \
+                return max_right_bound;\
+            } else if (set_count(dfa->accept_states, current_state)) { \
+                max_right_bound = offset; \
+            } \
         } \
         return max_right_bound; \
     } \

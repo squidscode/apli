@@ -23,7 +23,10 @@
 
 typedef struct _bitset_ _bitset_t;
 
+#ifndef SIZE_T_LIST
+#define SIZE_T_LIST
 define_list(size_t);
+#endif
 
 #define BITSET_SIZE             (4)
 #define BITSET_CHUNK_SIZE       (3 + (sizeof(size_t) >> 2))

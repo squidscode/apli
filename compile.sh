@@ -7,6 +7,8 @@ INTEGRATION_PY="test/integration/test_lisp.py"
 
 if [[ $1 == "parse-tree" ]]; then
     clang -O3 -DPRINT_PARSE_TREE $LISP_FILE;
+elif [[ $1 == "flat-dfa" ]]; then
+    clang -O3 -DPRINT_FLAT_DFA -fsanitize=address -fno-omit-frame-pointer $LISP_FILE;
 elif [[ $1 == "parse-tree-steps" ]]; then
     clang -O3 -DPRINT_PARSE_TREE_STEPS -fsanitize=address -fno-omit-frame-pointer $LISP_FILE;
 elif [[ $1 == "debug" ]]; then

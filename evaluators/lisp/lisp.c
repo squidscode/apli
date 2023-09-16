@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "arena.c"
 #include "../../src/apli.h"
+#include "lisp_regex_cache.c"
 
 #define APLI_EVAL_ARGUMENTS     environment *env
 #define APLI_EVAL_NAMES         env
@@ -157,15 +158,25 @@ int main(int argc, char **argv) {
     apli_non_terminals(s_expression, list, s_expressions, atomic_symbol);
     apli_terminals(ATOMIC_SYMBOL, OPEN_PAREN, CLOSE_PAREN, PERIOD, COMMENT);
 
+    apli_regex_init();
     apli_regex(
         (COMMENT, ";[^\n]*"),
         (ATOMIC_SYMBOL, "(\"([^\n\"]|\\\")*\"|[a-z0-9\\-]+|(<=|>=|[+-\\*/<>=]))"),
         (OPEN_PAREN, "\\("),
         (CLOSE_PAREN, "\\)"),
-        (PERIOD, ".")
+        (PERIOD, "\\.")
     );
-    apli_regex_compile();
 
+    // Only have one of the following uncommented:
+    // apli_regex_compile();    // compiles the regexes into a flat_dfa during runtime
+    apli_regex_load(
+        (COMMENT, forward_comment, backward_comment),
+        (ATOMIC_SYMBOL, forward_atomic_symbol, backward_atomic_symbol),
+        (OPEN_PAREN, forward_op_paren, backward_op_paren),
+        (CLOSE_PAREN, forward_close_paren, backward_close_paren),
+        (PERIOD, forward_period, backward_period)
+    );                          // loads the regexes from `lisp_regex_cache.c`
+    
     apli_bnf(
         (s_expression, atomic_symbol),
         (s_expression, OPEN_PAREN, s_expression, PERIOD, s_expression, CLOSE_PAREN),
