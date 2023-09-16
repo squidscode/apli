@@ -183,7 +183,7 @@ __APLI_START__
         (ATOMIC_SYMBOL, "(\"([^\n\"]|\\\")*\"|[a-z0-9\\-]+|(<=|>=|[+-\\*/<>=]))"),
         (OPEN_PAREN,    "\\("),
         (CLOSE_PAREN,   "\\)"),
-        (PERIOD,        ".")
+        (PERIOD,        "\\.")
     );
     apli_regex_compile();
 
