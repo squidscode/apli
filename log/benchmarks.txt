@@ -54,3 +54,39 @@
       └ factorial.lisp 0.024 ± 0.0 seconds (n=202)
     └ non-features
       └ mutual_recursion.lisp 0.041 ± 0.003 seconds (n=208)
+
+--- Post flat_dfa optimization ---
+resources
+  └ slow
+    └ big-files
+      └ 1.5m-characters.lisp 494.9 ± 11.8 milliseconds (n=9)
+      └ 10k-lines.lisp 128.4 ± 1.3 milliseconds (n=46)
+  └ fast
+    └ features
+      └ lexical_scoping.lisp 14.7 ± 0.4 milliseconds (n=313)
+      └ recursion.lisp 14.9 ± 0.3 milliseconds (n=317)
+    └ simple
+      └ arithmetic.lisp 14.5 ± 0.1 milliseconds (n=300)
+      └ fibonacci.lisp 15.0 ± 0.1 milliseconds (n=427)
+      └ hello_world.lisp 15.2 ± 0.1 milliseconds (n=290)
+      └ factorial.lisp 17.8 ± 0.3 milliseconds (n=277)
+    └ non-features
+      └ mutual_recursion.lisp 15.4 ± 0.4 milliseconds (n=301)
+
+--- After caching dfa ---
+ resources
+  └ slow
+    └ big-files
+      └ 1.5m-characters.lisp 548.4 ± 28.3 milliseconds (n=8)
+      └ 10k-lines.lisp 141.6 ± 7.1 milliseconds (n=43)
+  └ fast
+    └ features
+      └ lexical_scoping.lisp 5.8 ± 0.2 milliseconds (n=922)
+      └ recursion.lisp 6.2 ± 0.1 milliseconds (n=704)
+    └ simple
+      └ arithmetic.lisp 5.8 ± 0.2 milliseconds (n=892)
+      └ fibonacci.lisp 4.9 ± 0.0 milliseconds (n=1319)
+      └ hello_world.lisp 4.7 ± 0.0 milliseconds (n=925)
+      └ factorial.lisp 4.7 ± 0.0 milliseconds (n=902)
+    └ non-features
+      └ mutual_recursion.lisp 5.1 ± 0.1 milliseconds (n=831)
