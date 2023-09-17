@@ -1,5 +1,5 @@
-# Abstract Programming Language Interpreter (APLI)
-The Abstract Programming Language Interpreter (APLI) is a framework for generating and recursively walking Abstract Syntax Trees (ASTs). The user is responsible for working with the AST, walking through the nodes via `eval-hooks`, in order to interpret/compile/transpile the parsed output. 
+# Abstract Programming Language Interface (APLI)
+The Abstract Programming Language Interface (APLI) is a framework for generating and recursively walking Abstract Syntax Trees (ASTs). The user is responsible for working with the AST, walking through the nodes via `eval-hooks`, in order to interpret/compile/transpile the parsed output. 
 
 ## Why use APLI?
 Although other lexing and parsing tools exist, many tools have users write code in a domain-specific language (ie. lex files or yacc files). DSLs can make the library: (1) harder to understand and (2) detract from the author's intent. \
