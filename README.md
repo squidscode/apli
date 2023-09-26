@@ -2,11 +2,11 @@
 The Abstract Programming Language Interface (APLI) is a framework for generating and recursively walking Abstract Syntax Trees (ASTs). The user is responsible for working with the AST, walking through the nodes via `eval-hooks`, in order to interpret/compile/transpile the parsed output. 
 
 ## Why use APLI?
-Although other lexing and parsing tools exist, many tools have users write code in a domain-specific language (ie. lex files or yacc files). DSLs can make the library: (1) harder to understand and (2) detract from the author's intent. \
-\
 APLI handles the lexing and parsing steps in a way that is simple and declarative. Everything is written natively in C. No confusing syntax -- all APLI api calls start with `apli`, and the user can choose to explicitly call the api with arguments or let APLI infer the names of the arguments.
 
-A clear separation between the lexing & parsing steps (APLI) and the user's evaluator delineates responsibility. As the author of APLI, I am responsible for making performance improvements and making sure that APLI is bug free, but, after the AST is constructed, any performance improvements are the user's responsibility.  
+A clear separation between the lexing & parsing steps (APLI) and the user's "evaluation code" delineates responsibility (this happens to be the separation between the **syntax** and the **semantics** of a programming language). You (the user) can worry about the semantics of your programming language and delegate the syntax parsing to APLI.
+
+APLI is also very fast. Currently, it can lex and parse at a speed of about 4 Mb/s. If you decide to evaluate a small file, you can get AST parsing done in about 15 milliseconds. If you embed your regular expression DFA into your source file (see lisp example) you can get startup times of 5 milliseconds on small files. 
 
 ## How do I write an evaluator?
 The steps to construct an evaluator are:
