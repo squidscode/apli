@@ -387,15 +387,21 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *bnf_rules, List(_token
         _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
 #endif
         step_number += 1;
+
+        // The shift condition is barely utilized, there isn't much of a point in including it here.
+#ifndef IGNORE_PARSER_SHIFT_CONDITION_CHECK
         if(_parser_shift_condition(parse_stack, look_ahead_list, tree, look_ahead)) {
             _parser_shift(parse_stack, look_ahead_list);
             _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead, type);
         } else {
+#endif
             if(1 == _parser_reduce(parse_stack, sorted_rule_indices, bnf_rules, type)) {
                 _parser_shift(parse_stack, look_ahead_list);
                 _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead, type);
             }
+#ifndef IGNORE_PARSER_SHIFT_CONDITION_CHECK
         }
+#endif
     }
 
     // Keep reducing.
@@ -560,20 +566,21 @@ static inline char _parser_reduce(Vector(_parse_tree_node_t) *parse_stack, Vecto
 static inline char _parser_parse_stack_matches_bnf_rule(Vector(_parse_tree_node_t) *parse_stack, _bnf_rule_t bnf, parser_type type) {
     // printf("parse tree stack size : %zu\n", vector_size(parse_stack));
     // printf("vector_size(bnf.rule) = %zu\n", vector_size(bnf.rule));
-    for(size_t i = vector_size(bnf.rule) - 1; i != 0UL - 1; --i) {
+    if(vector_size(parse_stack) < vector_size(bnf.rule))
+        return 0;
+    size_t bnf_rules_size = vector_size(bnf.rule);
+    for(size_t i = bnf_rules_size - 1; i != ~0UL; --i) {
         // printf("i = %zu\n", i);
-        size_t parse_stack_index = vector_size(parse_stack) - ((vector_size(bnf.rule) - 1) - i) - 1;
+        size_t parse_stack_index = vector_size(parse_stack) - ((bnf_rules_size - 1) - i) - 1;
         // printf("parse_stack_index = %zu\n", parse_stack_index);
-        if(vector_size(parse_stack) <= parse_stack_index)
-            return 0;
         // printf("checking index: %zu\n", parse_stack_index);
         _parse_tree_value_t ptv = vector_get(parse_stack, parse_stack_index).root;
         const char *ptv_name = ptv.is_terminal_t ? ptv.ptr.terminal.name : ptv.ptr.token.name;
         size_t ptv_name_length = ptv.is_terminal_t ? ptv.ptr.terminal.name_length : strlen(ptv.ptr.token.name);
-
-        size_t bnf_index = ((LEFT_TO_RIGHT == type) ? (i) : (vector_size(bnf.rule) - 1 - i));
-        if(ptv_name_length != vector_get(bnf.rule, bnf_index).name_length
-            || 0 != memcmp(vector_get(bnf.rule, bnf_index).name, ptv_name, ptv_name_length))
+        size_t bnf_index = (LEFT_TO_RIGHT == type) * (i) + !(LEFT_TO_RIGHT == type) * (bnf_rules_size - 1 - i);
+        _terminal_t term = vector_get(bnf.rule, bnf_index);
+        if(ptv_name_length != term.name_length
+            || (term.name != ptv_name && 0 != memcmp(term.name, ptv_name, ptv_name_length)))
             return 0;
     }
     return 1;

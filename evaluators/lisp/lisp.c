@@ -188,26 +188,24 @@ int main(int argc, char **argv) {
         (atomic_symbol, ATOMIC_SYMBOL)
     );
 
-    char *input;
+    const char *input;
     if(0 == strcmp("-e", argv[1]) || 0 == strcmp("--execute", argv[1])) {
         if(3 != argc) {
             printf("A second argument was not provided.\n");
             exit(1);
         }
-        input = add_pre_post_buffer(argv[2], 2);
+        input = argv[2];
     } else {
         if(2 != argc) {
             printf("Invalid arguments provided to executable.\n");
             exit(1);
         }
-        input = add_pre_post_buffer(ftoca(argv[1]), 2);
+        input = ftoca(argv[1]);
     }
 
     List(_token_t) *tokens = token_rules_tokenize(token_rules, input);
     _token_rules_ignore_token(tokens, "COMMENT");
     parse_tree_result = bnf_rules_construct_parse_tree(bnf_rules, tokens, parser_type_inst);
-
-    // printf("bytes_allocated %zu\n", bytes_allocated);
 
     // DRY_RUN wil only run the lexing and parsing steps. Since the evaluation is the
     // user's responsibility, I will be focusing on optimizing the dry run.
@@ -219,8 +217,6 @@ int main(int argc, char **argv) {
     push_frame(env);
     apli_evaluate_node(parse_tree_result.root);
     env_free(env);
-
-    free(input);
 
 __APLI_END__
 
