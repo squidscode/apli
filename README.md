@@ -88,9 +88,6 @@ __APLI_START__
 
     // Print the evaluation result.
     printf("%i\n", apli_evaluate(argv[1]));
-
-    free(input);
-
 __APLI_END__
 
 apli_function(expr) {
