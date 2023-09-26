@@ -1,5 +1,5 @@
 # Abstract Programming Language Interface (APLI)
-The Abstract Programming Language Interface (APLI) is a framework for generating and recursively walking Abstract Syntax Trees (ASTs). The user is responsible for working with the AST, walking through the nodes via `eval-hooks`, in order to interpret/compile/transpile the parsed output. 
+The Abstract Programming Language Interface (APLI) is a framework for generating and recursively walking Abstract Syntax Trees (ASTs). The user is responsible for working with the AST by walking through the nodes via node-visitors (called `apli-functions`) in order to interpret/compile/transpile the parsed output. 
 
 ## Why use APLI?
 APLI handles the lexing and parsing steps in a way that is simple and declarative. Everything is written natively in C. No confusing syntax -- all APLI api calls start with `apli`, and the user can choose to explicitly call the api with arguments or let APLI infer the names of the arguments.
