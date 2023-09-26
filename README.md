@@ -111,9 +111,10 @@ apli_function(factor) {
 
 Check out [`calculator.c`](evaluators/arithmetic/calculator.c) to see a working implementation. Also, check out [`lisp.c`](evaluators/lisp/lisp.c) for a tree-walking lisp interpreter. It can currently interpret [the following files](test/integration/resources/simple), and is approximately 10 times slower than `clisp`, partly due to inefficiencies in `apli` and, probably, the fact that it's not complied to bytecode first. 
 
-If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for a dead-simple tree-walking interpreter. Is it fast? No. Does it work? Sure (the tests in `test/integration/resources` evaluate correctly).
+If you wanted to write something more complex, the parser can parse left-to-right & right-to-left and works with a grammars with one look-ahead (multiple look-ahead is untested). Look at `lisp.c` for a simple tree-walking interpreter for inspiration. 
 
 # Lisp Evaluator Boilerplate Code
+For more complicated evaluators, you might want to re-parse a previous node. For that, you'll have to use the `ApliNode` structure. `ApliNode`s are references to nodes on the AST. To evaluate the node, you can call `apli_evaluate_args` with the apli node you want to evaluate to dynamically dispatch to the correct `apli_function`. 
 ```c
 #include <apli.h>
 
@@ -212,7 +213,14 @@ __APLI_START__
 
 __APLI_END__
 
+apli_define_functions(s_expression_case_1, s_expression_case_2);
 apli_function(s_expression) {
+    // ...
+}
+apli_function(s_expression_case_1) {
+    // ...
+}
+apli_function(s_expression_case_2) {
     // ...
 }
 
@@ -230,3 +238,6 @@ apli_function(atomic_symbol) {
 
 // Imlementation details...
 ```
+
+# Caveats
+APLI doesn't do well with ambiguous grammars because it can only construct a single-pass parser. It relies on the user to write syntax rules that aren't ambiguous. This is an issue I will be fixing in the future by creating a recursive parser, but it hasn't been written yet. Write your BNF rules with caution!
