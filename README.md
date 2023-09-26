@@ -115,6 +115,9 @@ If you wanted to write something more complex, the parser can parse left-to-righ
 
 # Lisp Evaluator Boilerplate Code
 For more complicated evaluators, you might want to re-parse a previous node. For that, you'll have to use the `ApliNode` structure. `ApliNode`s are references to nodes on the AST. To evaluate the node, you can call `apli_evaluate_args` with the apli node you want to evaluate to dynamically dispatch to the correct `apli_function`. 
+
+I'd suggest looking at the `apli.h` file for macros implementation. Documentation has not been written yet.
+
 ```c
 #include <apli.h>
 
