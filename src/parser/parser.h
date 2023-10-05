@@ -72,6 +72,15 @@
          19,18,17,16,15,14,13,12,11,10, \
          9,8,7,6,5,4,3,2,1,0
 
+#define FGREEN  "\x1b[32;1m"
+#define FYELLOW  "\x1b[33;1m"
+#define FBLUE  "\x1b[34;1m"
+#define FMAGENTA  "\x1b[35;1m"
+#define FCYAN  "\x1b[36;1m"
+#define FLBLUE  "\x1b[38;2;50;175;255;1m"
+#define FRED  "\x1b[31;1m"
+#define RESET "\x1b[0m"
+
 /**
  * A non-terminal is a symbol that is a place holder for other terminal/non-terminal symbols.
  * A terminal is an "elementary" symbol. In this case, each terminal must correspond to a specific token.
@@ -363,18 +372,20 @@ static inline Vector(size_t)* _sort_bnf_rule_indices(_bnf_rules_t *bnf_rules);
 _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *bnf_rules, List(_token_t) *token_list, _terminal_tree_t *tree, size_t look_ahead, parser_type type) {
     Vector(_parse_tree_node_t) *parse_stack = vector_new(_parse_tree_node_t);
     List(_token_t) *look_ahead_list = list_new(_token_t);
+    size_t last_reduced_index = ~0UL;
     size_t step_number = 1;
 
     Vector(size_t) *sorted_rule_indices = _sort_bnf_rule_indices(bnf_rules);
 
     if(0 == list_size(token_list))
-        assert(0 == "Parser error!");
+        assert(0 == "Token list is empty!");
 
     // To begin, we fill the look_ahead list, shift, then fill look_ahead again.
     _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead, type);
 #ifdef PRINT_PARSE_TREE_STEPS
     _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
 #endif
+    step_number += 1;
     _parser_shift(parse_stack, look_ahead_list);
 #ifdef PRINT_PARSE_TREE_STEPS
     _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
@@ -398,6 +409,8 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *bnf_rules, List(_token
             if(1 == _parser_reduce(parse_stack, sorted_rule_indices, bnf_rules, type)) {
                 _parser_shift(parse_stack, look_ahead_list);
                 _parser_fill_look_ahead_list(look_ahead_list, token_list, look_ahead, type);
+            } else {
+                last_reduced_index = vector_size(parse_stack) - 1;
             }
 #ifndef IGNORE_PARSER_SHIFT_CONDITION_CHECK
         }
@@ -409,6 +422,7 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *bnf_rules, List(_token
 #ifdef PRINT_PARSE_TREE_STEPS
         _parser_print_parsing_step(parse_stack, look_ahead_list, token_list, step_number);
 #endif
+        last_reduced_index = vector_size(parse_stack) - 1;
         step_number += 1;
     }
 
@@ -420,8 +434,24 @@ _parse_tree_t _bnf_rules_shift_reduce_parse(_bnf_rules_t *bnf_rules, List(_token
     list_free(look_ahead_list);
     vector_free(sorted_rule_indices);
 
-    if(1 != vector_size(parse_stack))
-        assert(0 == "Parser error!");
+    if(1 != vector_size(parse_stack)) {
+        if(type == RIGHT_TO_LEFT) {
+            // Reverse the parse stack in-place
+            _parse_tree_node_t tmp;
+            size_t ps_sz = vector_size(parse_stack);
+            size_t mid = ps_sz / 2;
+            for(size_t i = 0; i < mid; ++i) {
+                tmp = vector_get(parse_stack, i);
+                vector_set(parse_stack, i, vector_get(parse_stack, ps_sz - i - 1));
+                vector_set(parse_stack, ps_sz - i - 1, tmp);
+            }
+            last_reduced_index = ps_sz - last_reduced_index - 1;
+        }
+        fprintf(stderr, FRED "Parser Error! Final parse stack:\n" RESET);
+        _parser_print_parse_tree_node_vector(parse_stack);
+        
+        exit(1);
+    }
     _parse_tree_t parse_tree = {vector_get_back(parse_stack)};
     vector_free(parse_stack);
     return parse_tree;
@@ -448,27 +478,17 @@ Vector(size_t)* _sort_bnf_rule_indices(_bnf_rules_t *bnf_rules) {
     return sorted_rule_indices;
 }
 
-
-#define FGREEN  "\x1b[32;1m"
-#define FYELLOW  "\x1b[33;1m"
-#define FBLUE  "\x1b[34;1m"
-#define FMAGENTA  "\x1b[35;1m"
-#define FCYAN  "\x1b[36;1m"
-#define FLBLUE  "\x1b[38;2;50;175;255;1m"
-#define FRED  "\x1b[31;1m"
-#define RESET "\x1b[0m"
-
 static inline void _parser_print_parsing_step(Vector(_parse_tree_node_t) *parse_stack, List(_token_t) *look_ahead_list,
     List(_token_t) *token_list, size_t step_number) {
-    printf(FBLUE "----------- STEP #%zu -----------" RESET, step_number);
-    printf("\n\n" FRED "Parse Stack: " RESET "\n");
+    fprintf(stderr, FBLUE "----------- STEP #%zu -----------" RESET, step_number);
+    fprintf(stderr, "\n\n" FRED "Parse Stack: " RESET "\n");
     _parser_print_parse_tree_node_vector(parse_stack);
-    printf(FRED "Look-ahead list: " RESET);
+    fprintf(stderr, FRED "Look-ahead list: " RESET);
     _parser_print_token_list(look_ahead_list);
-    printf("\n" FRED "Tokens: " RESET);
+    fprintf(stderr, "\n" FRED "Tokens: " RESET);
     _parser_print_token_list(token_list);
-    printf("\n\n");
-    printf(FBLUE "---------------------------------\n\n" RESET);
+    fprintf(stderr, "\n\n");
+    fprintf(stderr, FBLUE "---------------------------------\n\n" RESET);
 }
 
 
@@ -599,45 +619,45 @@ static inline void _parser_print_parse_tree_node_vector_helper(Vector(_parse_tre
     size_t size = vector_size(tree);
     for(size_t i = 0; i < size; ++i) {
         for(size_t indent_level = 0; indent_level < indent; ++indent_level)
-            printf("|   ");
+            fprintf(stderr, "| ");
         _parse_tree_node_t node = vector_get(tree, i);
         _parser_print_parse_tree_value(node.root);
-        printf("\n");
+        fprintf(stderr, "\n");
         _parser_print_parse_tree_node_vector_helper(node.children, indent + 1);
     }
 }
 
 static inline void _parser_print_parse_tree_value(_parse_tree_value_t value) {
-    printf("<");
+    // fprintf(stderr, "<");
     if(value.is_terminal_t) {
         // printf(value.ptr.terminal.is_terminal ? "TERM" : "NON_TERM");
         // printf(" ");
         for(size_t i = 0; i < value.ptr.terminal.name_length; ++i) {
-            printf("%c", value.ptr.terminal.name[i]);
+            fprintf(stderr, "%c", value.ptr.terminal.name[i]);
         }
     } else {
         _parser_print_token(value.ptr.token);
     }
-    printf(">");
+    // fprintf(stderr, ">");
 }
 
 static inline void _parser_print_token_list(List(_token_t) *tokens) {
     Iterator(_token_t) *iter = list_get_iterator(tokens);
-    printf("(");
+    fprintf(stderr, "(");
     char first = 1;
     while(iter_is_not_null(iter)) {
-        if(!first) printf(", ");
+        if(!first) fprintf(stderr, ", ");
         first = 0;
         _parser_print_token(iter_val(iter));
         iter = iter_next(iter);
     }
-    printf(")");
+    fprintf(stderr, ")");
 }
 
 static inline void _parser_print_token(_token_t token) {
-    printf("`%s` ", token.name);
+    fprintf(stderr, "`%s` ", token.name);
     for(size_t i = 0; i < token.length; ++i) 
-        printf("%c", token.ptr[i]);
+        fprintf(stderr, "%c", token.ptr[i]);
 }
 
 _bnf_rules_fn_t _bnf_rules_fn_impl = {
