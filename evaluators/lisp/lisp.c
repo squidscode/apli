@@ -392,7 +392,8 @@ void _extend_env(environment *env, string_segment id, return_value rv) {
 environment *_clone_env(environment *env) {
     size_t sz = vector_size(env->stack_frame);
     environment *new_env = env_new();
-    for(size_t i = 0; i < sz; ++i) {
+    vector_push_back(new_env->stack_frame, vector_get(env->stack_frame, 0));
+    for(size_t i = 1; i < sz; ++i) {
         frame nxt_frame = vector_get(env->stack_frame, i);
         frame frame_clone = map_clone(nxt_frame);
         vector_push_back(new_env->stack_frame, frame_clone);
